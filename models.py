@@ -77,11 +77,16 @@ class Problem:
         self.time_spent = timedelta(0)
         self.created_at = datetime.now()
         self.completed_at: Optional[datetime] = None
+        self.rotation_completed_at: Optional[datetime] = None
     
     def mark_completed(self):
         """Mark problem as completed."""
         self.status = Status.COMPLETED
         self.completed_at = datetime.now()
+    
+    def mark_rotation_completed(self):
+        """Mark problem as completed in rotation review."""
+        self.rotation_completed_at = datetime.now()
     
     def add_note(self, note: str):
         """Add a note to this problem."""
@@ -108,7 +113,8 @@ class Problem:
             'attempts': self.attempts,
             'time_spent_minutes': int(self.time_spent.total_seconds() / 60),
             'created_at': self.created_at.isoformat(),
-            'completed_at': self.completed_at.isoformat() if self.completed_at else None
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
+            'rotation_completed_at': self.rotation_completed_at.isoformat() if self.rotation_completed_at else None
         }
     
     @classmethod
@@ -128,6 +134,8 @@ class Problem:
         problem.created_at = datetime.fromisoformat(data['created_at'])
         if data['completed_at']:
             problem.completed_at = datetime.fromisoformat(data['completed_at'])
+        if data.get('rotation_completed_at'):
+            problem.rotation_completed_at = datetime.fromisoformat(data['rotation_completed_at'])
         return problem
 
 
@@ -260,3 +268,52 @@ class ProgressTracker:
         for problem in self.problems.values():
             if problem.topic in self.topics:
                 self.topics[problem.topic].add_problem(problem)
+    
+    def get_next_rotation_problem(self) -> Optional[Problem]:
+        """Get the next problem for rotation review."""
+        import random
+        
+        # Get all completed problems
+        completed_problems = [p for p in self.problems.values() if p.status == Status.COMPLETED]
+        
+        if not completed_problems:
+            return None
+        
+        # Separate problems into two groups:
+        # 1. Problems that haven't been reviewed in rotation yet
+        # 2. Problems that have been reviewed but all others have been reviewed too
+        
+        # Find the latest rotation completion time among all problems
+        latest_rotation_times = [p.rotation_completed_at for p in completed_problems if p.rotation_completed_at]
+        
+        if not latest_rotation_times:
+            # No problems have been reviewed yet, pick any completed problem
+            return random.choice(completed_problems)
+        
+        # Get the latest rotation completion time
+        latest_rotation_time = max(latest_rotation_times)
+        
+        # Find problems that haven't been reviewed since the latest "round" started
+        unreviewed_in_current_round = [
+            p for p in completed_problems 
+            if not p.rotation_completed_at or p.rotation_completed_at < latest_rotation_time
+        ]
+        
+        if unreviewed_in_current_round:
+            # Still have problems to review in current round
+            return random.choice(unreviewed_in_current_round)
+        else:
+            # All problems have been reviewed in current round, start new round
+            # Pick any completed problem (start fresh round)
+            return random.choice(completed_problems)
+    
+    def get_rotation_stats(self) -> dict:
+        """Get rotation statistics."""
+        completed_problems = [p for p in self.problems.values() if p.status == Status.COMPLETED]
+        reviewed_problems = [p for p in completed_problems if p.rotation_completed_at]
+        
+        return {
+            'total_completed': len(completed_problems),
+            'total_reviewed': len(reviewed_problems),
+            'pending_review': len(completed_problems) - len(reviewed_problems)
+        }

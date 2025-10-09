@@ -158,6 +158,7 @@ class InterviewTrackerGUI:
         self.create_problems_tab()
         self.create_topics_tab()
         self.create_sessions_tab()
+        self.create_rotation_tab()
         
         # Status bar
         self.status_bar = ttk.Label(self.root, text="Ready", relief='sunken')
@@ -456,12 +457,62 @@ class InterviewTrackerGUI:
         self.sessions_tree.bind("<Button-3>", self.show_sessions_context_menu)
         self.sessions_tree.bind("<Double-1>", self.view_session_details)
     
+    def create_rotation_tab(self):
+        """Create the problem rotation tab for reviewing completed problems."""
+        self.rotation_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.rotation_frame, text="🔄 Rotation")
+        
+        # Main container with padding
+        main_container = ttk.Frame(self.rotation_frame)
+        main_container.pack(fill='both', expand=True, padx=20, pady=20)
+        
+        # Title and stats section
+        title_frame = ttk.Frame(main_container)
+        title_frame.pack(fill='x', pady=(0, 20))
+        
+        title_label = ttk.Label(title_frame, text="Problem Rotation Review", font=('Arial', 16, 'bold'))
+        title_label.pack(anchor='w')
+        
+        self.rotation_stats_label = ttk.Label(title_frame, text="", font=('Arial', 10))
+        self.rotation_stats_label.pack(anchor='w', pady=(5, 0))
+        
+        # Control buttons
+        controls_frame = ttk.Frame(main_container)
+        controls_frame.pack(fill='x', pady=(0, 20))
+        
+        self.next_problem_btn = ttk.Button(controls_frame, text="🎲 Get Next Problem", 
+                                         command=self.get_next_rotation_problem)
+        self.next_problem_btn.pack(side='left', padx=(0, 10))
+        
+        self.mark_rotation_done_btn = ttk.Button(controls_frame, text="✅ Mark as Done", 
+                                               command=self.mark_rotation_completed,
+                                               state='disabled')
+        self.mark_rotation_done_btn.pack(side='left')
+        
+        # Problem display area
+        self.rotation_problem_frame = ttk.LabelFrame(main_container, text="Current Problem", padding="15")
+        self.rotation_problem_frame.pack(fill='both', expand=True)
+        
+        # Initially show "no problem selected" message
+        self.rotation_content_frame = ttk.Frame(self.rotation_problem_frame)
+        self.rotation_content_frame.pack(fill='both', expand=True)
+        
+        self.no_problem_label = ttk.Label(self.rotation_content_frame, 
+                                        text="Click 'Get Next Problem' to start reviewing completed problems.",
+                                        font=('Arial', 12),
+                                        foreground='gray')
+        self.no_problem_label.pack(expand=True)
+        
+        # Current rotation problem
+        self.current_rotation_problem: Optional[Problem] = None
+
     def refresh_all_views(self):
         """Refresh all tabs with current data."""
         self.refresh_dashboard()
         self.refresh_problems_view()
         self.refresh_topics_view()
         self.refresh_sessions_view()
+        self.refresh_rotation_view()
         self.update_filters()
     
     def refresh_dashboard_immediate(self):
@@ -483,6 +534,8 @@ class InterviewTrackerGUI:
             self.refresh_topics_view()
         elif "Sessions" in selected_tab:
             self.refresh_sessions_view()
+        elif "Rotation" in selected_tab:
+            self.refresh_rotation_view()
     
     def update_filters(self):
         """Update filter dropdown values."""
@@ -740,6 +793,156 @@ class InterviewTrackerGUI:
             except (ValueError, IndexError) as e:
                 messagebox.showerror("Error", f"Error deleting session: {e}")
     
+    # Rotation methods
+    def refresh_rotation_view(self):
+        """Refresh the rotation tab display."""
+        stats = self.tracker.get_rotation_stats()
+        stats_text = f"Completed Problems: {stats['total_completed']} | Reviewed: {stats['total_reviewed']} | Pending: {stats['pending_review']}"
+        self.rotation_stats_label.config(text=stats_text)
+        
+        # Enable/disable buttons based on available problems
+        has_completed = stats['total_completed'] > 0
+        self.next_problem_btn.config(state='normal' if has_completed else 'disabled')
+        
+        if not has_completed:
+            self.show_no_problems_message()
+    
+    def get_next_rotation_problem(self):
+        """Get and display the next problem for rotation review."""
+        problem = self.tracker.get_next_rotation_problem()
+        
+        if problem:
+            self.current_rotation_problem = problem
+            self.display_rotation_problem(problem)
+            self.mark_rotation_done_btn.config(state='normal')
+        else:
+            self.show_no_problems_message()
+            self.mark_rotation_done_btn.config(state='disabled')
+    
+    def mark_rotation_completed(self):
+        """Mark the current rotation problem as completed."""
+        if not self.current_rotation_problem:
+            return
+        
+        self.current_rotation_problem.mark_rotation_completed()
+        self.save_data()
+        
+        # Clear current problem and update display
+        self.current_rotation_problem = None
+        self.mark_rotation_done_btn.config(state='disabled')
+        self.show_completion_message()
+        
+        # Refresh stats
+        self.refresh_rotation_view()
+        self.status_bar.config(text="Problem marked as reviewed in rotation")
+    
+    def display_rotation_problem(self, problem: Problem):
+        """Display the rotation problem details."""
+        # Clear existing content
+        for widget in self.rotation_content_frame.winfo_children():
+            widget.destroy()
+        
+        # Create scrollable frame for problem content
+        canvas = tk.Canvas(self.rotation_content_frame)
+        scrollbar = ttk.Scrollbar(self.rotation_content_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Problem details
+        title_label = ttk.Label(scrollable_frame, text=problem.title, font=('Arial', 18, 'bold'))
+        title_label.pack(anchor='w', pady=(0, 15))
+        
+        # Info grid
+        info_frame = ttk.Frame(scrollable_frame)
+        info_frame.pack(fill='x', pady=(0, 15))
+        
+        ttk.Label(info_frame, text="Topic:", font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 10))
+        ttk.Label(info_frame, text=problem.topic, font=('Arial', 11)).grid(row=0, column=1, sticky='w')
+        
+        ttk.Label(info_frame, text="Difficulty:", font=('Arial', 11, 'bold')).grid(row=1, column=0, sticky='w', padx=(0, 10))
+        ttk.Label(info_frame, text=problem.difficulty.value, font=('Arial', 11)).grid(row=1, column=1, sticky='w')
+        
+        ttk.Label(info_frame, text="Attempts:", font=('Arial', 11, 'bold')).grid(row=2, column=0, sticky='w', padx=(0, 10))
+        ttk.Label(info_frame, text=str(problem.attempts), font=('Arial', 11)).grid(row=2, column=1, sticky='w')
+        
+        time_spent = int(problem.time_spent.total_seconds() / 60)
+        ttk.Label(info_frame, text="Time Spent:", font=('Arial', 11, 'bold')).grid(row=3, column=0, sticky='w', padx=(0, 10))
+        ttk.Label(info_frame, text=f"{time_spent} minutes", font=('Arial', 11)).grid(row=3, column=1, sticky='w')
+        
+        if problem.completed_at:
+            completed_date = problem.completed_at.strftime('%Y-%m-%d')
+            ttk.Label(info_frame, text="Completed:", font=('Arial', 11, 'bold')).grid(row=4, column=0, sticky='w', padx=(0, 10))
+            ttk.Label(info_frame, text=completed_date, font=('Arial', 11)).grid(row=4, column=1, sticky='w')
+        
+        # From/URL
+        if problem.url:
+            ttk.Label(scrollable_frame, text="From:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            url_label = ttk.Label(scrollable_frame, text=problem.url, foreground='blue', cursor='hand2')
+            url_label.pack(anchor='w')
+        
+        # Description
+        if problem.description:
+            ttk.Label(scrollable_frame, text="Description:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(15, 5))
+            desc_text = tk.Text(scrollable_frame, height=8, wrap='word', state='disabled', font=('Arial', 10))
+            desc_text.config(state='normal')
+            desc_text.insert('1.0', problem.description)
+            desc_text.config(state='disabled')
+            desc_text.pack(fill='x', pady=(0, 10))
+        
+        # Notes
+        if problem.notes:
+            ttk.Label(scrollable_frame, text="Notes:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            notes_text = tk.Text(scrollable_frame, height=6, wrap='word', state='disabled', font=('Arial', 10))
+            notes_text.config(state='normal')
+            for note in problem.notes:
+                notes_text.insert('end', f"• {note}\n")
+            notes_text.config(state='disabled')
+            notes_text.pack(fill='x')
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Bind mousewheel to canvas
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+    
+    def show_no_problems_message(self):
+        """Show message when no problems are available for rotation."""
+        # Clear existing content
+        for widget in self.rotation_content_frame.winfo_children():
+            widget.destroy()
+        
+        message = "No completed problems available for rotation review.\nComplete some problems first!"
+        label = ttk.Label(self.rotation_content_frame, 
+                         text=message,
+                         font=('Arial', 12),
+                         foreground='gray',
+                         justify='center')
+        label.pack(expand=True)
+    
+    def show_completion_message(self):
+        """Show completion message after marking a problem as done."""
+        # Clear existing content
+        for widget in self.rotation_content_frame.winfo_children():
+            widget.destroy()
+        
+        message = "✅ Problem marked as reviewed!\n\nClick 'Get Next Problem' to continue rotation review."
+        label = ttk.Label(self.rotation_content_frame, 
+                         text=message,
+                         font=('Arial', 12),
+                         foreground='green',
+                         justify='center')
+        label.pack(expand=True)
+
     # Dialog functions
     def add_problem_dialog(self):
         """Show dialog to add a new problem."""
