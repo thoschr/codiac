@@ -333,7 +333,16 @@ class InterviewTrackerGUI:
         self.problems_context_menu.add_command(label="View Details", command=self.view_problem_details)
         self.problems_context_menu.add_command(label="Edit Problem", command=self.edit_problem_dialog)
         self.problems_context_menu.add_separator()
-        self.problems_context_menu.add_command(label="Mark as Completed", command=self.mark_problem_completed)
+        
+        # Status change submenu
+        status_submenu = tk.Menu(self.problems_context_menu, tearoff=0)
+        status_submenu.add_command(label="Not Started", command=lambda: self.change_problem_status(Status.NOT_STARTED))
+        status_submenu.add_command(label="In Progress", command=lambda: self.change_problem_status(Status.IN_PROGRESS))
+        status_submenu.add_command(label="Completed", command=lambda: self.change_problem_status(Status.COMPLETED))
+        status_submenu.add_command(label="Needs Review", command=lambda: self.change_problem_status(Status.NEEDS_REVIEW))
+        self.problems_context_menu.add_cascade(label="Change Status", menu=status_submenu)
+        
+        self.problems_context_menu.add_separator()
         self.problems_context_menu.add_command(label="Add Time", command=self.add_time_dialog)
         self.problems_context_menu.add_command(label="Add Note", command=self.add_note_dialog)
         
@@ -736,7 +745,12 @@ class InterviewTrackerGUI:
         """Show dialog to add a new problem."""
         dialog = ProblemDialog(self.root, self.tracker.topics.keys())
         if dialog.result:
-            title, difficulty, topic, description, url = dialog.result
+            # Handle both old and new formats
+            if len(dialog.result) == 6:
+                title, difficulty, topic, description, url, status = dialog.result
+            else:
+                title, difficulty, topic, description, url = dialog.result
+                status = None
             
             if title in self.tracker.problems:
                 messagebox.showerror("Error", f"Problem '{title}' already exists!")
@@ -775,7 +789,7 @@ class InterviewTrackerGUI:
         
         dialog = ProblemDialog(self.root, self.tracker.topics.keys(), problem)
         if dialog.result:
-            title, difficulty, topic, description, url = dialog.result
+            title, difficulty, topic, description, url, status = dialog.result
             
             # Update problem properties
             if title != problem.title:
@@ -792,6 +806,24 @@ class InterviewTrackerGUI:
             problem.topic = topic
             problem.description = description
             problem.url = url
+            
+            # Handle status change if provided
+            if status:
+                old_status = problem.status.value
+                new_status = {
+                    'Not Started': Status.NOT_STARTED,
+                    'In Progress': Status.IN_PROGRESS,
+                    'Completed': Status.COMPLETED,
+                    'Needs Review': Status.NEEDS_REVIEW
+                }[status]
+                
+                problem.status = new_status
+                
+                # Handle completion date
+                if new_status == Status.COMPLETED and old_status != 'Completed':
+                    problem.mark_completed()
+                elif new_status != Status.COMPLETED and old_status == 'Completed':
+                    problem.completed_at = None
             
             self.save_data()
             self.refresh_all_views()
@@ -847,8 +879,8 @@ class InterviewTrackerGUI:
         if problem:
             ProblemDetailsDialog(self.root, problem)
     
-    def mark_problem_completed(self):
-        """Mark selected problem as completed."""
+    def change_problem_status(self, new_status: Status):
+        """Change the status of selected problem."""
         selection = self.problems_tree.selection()
         if not selection:
             return
@@ -858,13 +890,27 @@ class InterviewTrackerGUI:
         problem = self.tracker.problems.get(problem_title)
         
         if problem:
-            problem.mark_completed()
+            old_status = problem.status.value
+            problem.status = new_status
+            
+            # If marking as completed, set completion date
+            if new_status == Status.COMPLETED:
+                problem.mark_completed()
+            else:
+                # If changing from completed to something else, clear completion date
+                if problem.completed_at and new_status != Status.COMPLETED:
+                    problem.completed_at = None
+            
             self.save_data()
             # Force immediate refresh of all views
             self.refresh_all_views()
             # Also force dashboard refresh with updated hash
             self.last_data_hash = self.get_data_hash()
-            self.status_bar.config(text=f"Marked '{problem_title}' as completed - Progress updated")
+            self.status_bar.config(text=f"Changed '{problem_title}' from {old_status} to {new_status.value}")
+    
+    def mark_problem_completed(self):
+        """Mark selected problem as completed (legacy method for compatibility)."""
+        self.change_problem_status(Status.COMPLETED)
     
     def add_time_dialog(self):
         """Show dialog to add time to selected problem."""
@@ -915,7 +961,7 @@ class ProblemDialog:
         
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("Add Problem" if problem is None else "Edit Problem")
-        self.dialog.geometry("500x400")
+        self.dialog.geometry("500x500")
         self.dialog.resizable(False, False)
         self.dialog.transient(parent)
         self.dialog.grab_set()
@@ -929,6 +975,7 @@ class ProblemDialog:
         self.topic_var = tk.StringVar(value=problem.topic if problem else "")
         self.description_var = tk.StringVar(value=problem.description if problem else "")
         self.url_var = tk.StringVar(value=problem.url if problem else "")
+        self.status_var = tk.StringVar(value=problem.status.value if problem else "Not Started")
         
         self.create_widgets(topics)
         
@@ -958,15 +1005,26 @@ class ProblemDialog:
                                   values=list(topics), state='readonly')
         topic_combo.grid(row=2, column=1, columnspan=2, sticky='ew', pady=(0, 10))
         
+        # Status (only show for editing existing problems)
+        if hasattr(self, 'status_var'):
+            ttk.Label(main_frame, text="Status:").grid(row=3, column=0, sticky='w', pady=(0, 5))
+            status_combo = ttk.Combobox(main_frame, textvariable=self.status_var,
+                                       values=['Not Started', 'In Progress', 'Completed', 'Needs Review'],
+                                       state='readonly')
+            status_combo.grid(row=3, column=1, sticky='w', pady=(0, 10))
+            status_row = 4
+        else:
+            status_row = 3
+        
         # URL
-        ttk.Label(main_frame, text="URL (optional):").grid(row=3, column=0, sticky='w', pady=(0, 5))
+        ttk.Label(main_frame, text="URL (optional):").grid(row=status_row, column=0, sticky='w', pady=(0, 5))
         url_entry = ttk.Entry(main_frame, textvariable=self.url_var, width=50)
-        url_entry.grid(row=3, column=1, columnspan=2, sticky='ew', pady=(0, 10))
+        url_entry.grid(row=status_row, column=1, columnspan=2, sticky='ew', pady=(0, 10))
         
         # Description
-        ttk.Label(main_frame, text="Description:").grid(row=4, column=0, sticky='nw', pady=(0, 5))
+        ttk.Label(main_frame, text="Description:").grid(row=status_row+1, column=0, sticky='nw', pady=(0, 5))
         desc_frame = ttk.Frame(main_frame)
-        desc_frame.grid(row=4, column=1, columnspan=2, sticky='ew', pady=(0, 20))
+        desc_frame.grid(row=status_row+1, column=1, columnspan=2, sticky='ew', pady=(0, 20))
         
         self.description_text = tk.Text(desc_frame, height=6, width=50, wrap='word')
         desc_scrollbar = ttk.Scrollbar(desc_frame, orient='vertical', command=self.description_text.yview)
@@ -980,7 +1038,7 @@ class ProblemDialog:
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=5, column=0, columnspan=3, pady=20)
+        button_frame.grid(row=status_row+2, column=0, columnspan=3, pady=20)
         
         ttk.Button(button_frame, text="Save", command=self.save).pack(side='left', padx=(0, 10))
         ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left')
@@ -1002,7 +1060,10 @@ class ProblemDialog:
         
         description = self.description_text.get('1.0', 'end-1c').strip()
         
-        self.result = (title, self.difficulty_var.get(), topic, description, self.url_var.get().strip())
+        # Get status if editing
+        status = self.status_var.get() if hasattr(self, 'status_var') else None
+        
+        self.result = (title, self.difficulty_var.get(), topic, description, self.url_var.get().strip(), status)
         self.dialog.destroy()
     
     def cancel(self):
