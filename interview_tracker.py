@@ -1017,7 +1017,7 @@ class ProblemDialog:
             status_row = 3
         
         # URL
-        ttk.Label(main_frame, text="URL (optional):").grid(row=status_row, column=0, sticky='w', pady=(0, 5))
+        ttk.Label(main_frame, text="From (optional):").grid(row=status_row, column=0, sticky='w', pady=(0, 5))
         url_entry = ttk.Entry(main_frame, textvariable=self.url_var, width=50)
         url_entry.grid(row=status_row, column=1, columnspan=2, sticky='ew', pady=(0, 10))
         
@@ -1272,7 +1272,7 @@ class ProblemDetailsDialog:
         
         # URL
         if problem.url:
-            ttk.Label(main_frame, text="URL:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            ttk.Label(main_frame, text="From:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
             url_label = ttk.Label(main_frame, text=problem.url, foreground='blue', cursor='hand2')
             url_label.pack(anchor='w')
         
