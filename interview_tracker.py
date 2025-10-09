@@ -1229,12 +1229,15 @@ class ProblemDetailsDialog:
         self.dialog.title(f"Problem Details - {problem.title}")
         self.dialog.geometry("600x500")
         self.dialog.transient(parent)
-        self.dialog.grab_set()
         
         # Center the dialog
         self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
         
         self.create_widgets(problem)
+        
+        # Set grab after the window is configured and widgets are created
+        self.dialog.update_idletasks()
+        self.dialog.grab_set()
         self.dialog.wait_window()
     
     def create_widgets(self, problem):
