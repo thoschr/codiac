@@ -261,6 +261,11 @@ class InterviewTrackerGUI:
                                command=self.refresh_problems_view)
         refresh_btn.pack(side='left', padx=(0, 10))
         
+        # Delete button
+        delete_btn = ttk.Button(controls_frame, text="🗑️ Delete Selected", 
+                              command=self.delete_selected_problem)
+        delete_btn.pack(side='left', padx=(0, 10))
+        
         # Filters frame
         filters_frame = ttk.LabelFrame(controls_frame, text="Filters")
         filters_frame.pack(side='right', padx=(10, 0))
@@ -346,6 +351,8 @@ class InterviewTrackerGUI:
         self.problems_context_menu.add_separator()
         self.problems_context_menu.add_command(label="Add Time", command=self.add_time_dialog)
         self.problems_context_menu.add_command(label="Add Note", command=self.add_note_dialog)
+        self.problems_context_menu.add_separator()
+        self.problems_context_menu.add_command(label="Delete Problem", command=self.delete_selected_problem)
         
         self.problems_tree.bind("<Button-3>", self.show_problems_context_menu)
         self.problems_tree.bind("<Double-1>", self.view_problem_details)
@@ -1154,6 +1161,47 @@ class InterviewTrackerGUI:
                 self.save_data()
                 self.refresh_all_views()
                 self.status_bar.config(text=f"Added note to '{problem_title}' - Data updated")
+
+    def delete_selected_problem(self):
+        """Delete the selected problem with confirmation."""
+        selection = self.problems_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a problem to delete.")
+            return
+        
+        item = self.problems_tree.item(selection[0])
+        problem_title = item['text']
+        problem = self.tracker.problems.get(problem_title)
+        
+        if not problem:
+            messagebox.showerror("Error", "Problem not found.")
+            return
+        
+        # Confirmation dialog
+        result = messagebox.askyesno(
+            "Confirm Deletion", 
+            f"Are you sure you want to delete the problem '{problem_title}'?\n\n"
+            f"Topic: {problem.topic}\n"
+            f"Difficulty: {problem.difficulty.value}\n"
+            f"Status: {problem.status.value}\n\n"
+            f"This action cannot be undone."
+        )
+        
+        if result:
+            try:
+                # Use the centralized delete method from ProgressTracker
+                deleted = self.tracker.delete_problem(problem_title)
+                
+                if deleted:
+                    # Save data and refresh views
+                    self.save_data()
+                    self.refresh_all_views()
+                    self.status_bar.config(text=f"Deleted problem '{problem_title}' - Data updated")
+                else:
+                    messagebox.showerror("Error", "Problem not found in tracker.")
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Error deleting problem: {str(e)}")
 
 
 class ProblemDialog:

@@ -317,3 +317,29 @@ class ProgressTracker:
             'total_reviewed': len(reviewed_problems),
             'pending_review': len(completed_problems) - len(reviewed_problems)
         }
+    
+    def delete_problem(self, problem_title: str) -> bool:
+        """Delete a problem and clean up all references to it.
+        
+        Returns True if the problem was found and deleted, False otherwise.
+        """
+        if problem_title not in self.problems:
+            return False
+        
+        problem = self.problems[problem_title]
+        
+        # Remove from problems dictionary
+        del self.problems[problem_title]
+        
+        # Remove from topic's problems list if the topic exists
+        if problem.topic in self.topics:
+            topic = self.topics[problem.topic]
+            if problem in topic.problems:
+                topic.problems.remove(problem)
+        
+        # Remove from study sessions' problems_worked lists
+        for session in self.sessions:
+            if problem_title in session.problems_worked:
+                session.problems_worked.remove(problem_title)
+        
+        return True
