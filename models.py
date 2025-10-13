@@ -186,8 +186,13 @@ class ProgressTracker:
             self.topics[problem.topic].add_problem(problem)
     
     def add_session(self, session: StudySession):
-        """Add a study session."""
+        """Add a study session and update attempt counters for worked problems."""
         self.sessions.append(session)
+        
+        # Update attempt counters for problems worked on in this session
+        for problem_title in session.problems_worked:
+            if problem_title in self.problems:
+                self.problems[problem_title].increment_attempts()
     
     def get_overall_stats(self) -> dict:
         """Get overall progress statistics."""
@@ -343,3 +348,22 @@ class ProgressTracker:
                 session.problems_worked.remove(problem_title)
         
         return True
+    
+    def recalculate_attempt_counters(self) -> dict:
+        """Recalculate all attempt counters based on existing sessions.
+        
+        Returns a dictionary with the number of attempts updated for each problem.
+        """
+        # Reset all attempt counters to 0
+        for problem in self.problems.values():
+            problem.attempts = 0
+        
+        # Count attempts from all sessions
+        updated_counts = {}
+        for session in self.sessions:
+            for problem_title in session.problems_worked:
+                if problem_title in self.problems:
+                    self.problems[problem_title].attempts += 1
+                    updated_counts[problem_title] = self.problems[problem_title].attempts
+        
+        return updated_counts

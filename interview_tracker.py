@@ -266,6 +266,11 @@ class InterviewTrackerGUI:
                               command=self.delete_selected_problem)
         delete_btn.pack(side='left', padx=(0, 10))
         
+        # Recalculate attempts button
+        recalc_btn = ttk.Button(controls_frame, text="🔢 Recalculate Attempts", 
+                              command=self.recalculate_attempts)
+        recalc_btn.pack(side='left', padx=(0, 10))
+        
         # Filters frame
         filters_frame = ttk.LabelFrame(controls_frame, text="Filters")
         filters_frame.pack(side='right', padx=(10, 0))
@@ -1202,6 +1207,45 @@ class InterviewTrackerGUI:
                 
             except Exception as e:
                 messagebox.showerror("Error", f"Error deleting problem: {str(e)}")
+
+    def recalculate_attempts(self):
+        """Recalculate attempt counters based on existing sessions."""
+        result = messagebox.askyesno(
+            "Recalculate Attempts", 
+            "This will recalculate all attempt counters based on existing study sessions.\n\n"
+            "All current attempt counts will be reset and recalculated from session data.\n\n"
+            "Do you want to continue?"
+        )
+        
+        if result:
+            try:
+                updated_counts = self.tracker.recalculate_attempt_counters()
+                
+                if updated_counts:
+                    # Save the updated data
+                    self.save_data()
+                    self.refresh_all_views()
+                    
+                    # Show summary of updates
+                    summary_lines = []
+                    for problem_title, count in updated_counts.items():
+                        summary_lines.append(f"• {problem_title}: {count} attempts")
+                    
+                    summary = "\n".join(summary_lines[:10])  # Show max 10 problems
+                    if len(updated_counts) > 10:
+                        summary += f"\n... and {len(updated_counts) - 10} more"
+                    
+                    messagebox.showinfo(
+                        "Recalculation Complete", 
+                        f"Successfully recalculated attempt counters for {len(updated_counts)} problems:\n\n{summary}"
+                    )
+                    
+                    self.status_bar.config(text=f"Recalculated attempt counters for {len(updated_counts)} problems")
+                else:
+                    messagebox.showinfo("Recalculation Complete", "No problems found with session data to update.")
+                    
+            except Exception as e:
+                messagebox.showerror("Error", f"Error recalculating attempts: {str(e)}")
 
 
 class ProblemDialog:
