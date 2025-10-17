@@ -1,0 +1,19 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Interview Tracker
+Comment=Track your coding interview preparation progress
+GenericName=Interview Preparation Tracker
+Keywords=interview;coding;practice;tracker;preparation;programming;
+Icon=accessories-calculator
+Exec=/home/thoschr/codes/codiac/.venv/bin/python /home/thoschr/codes/codiac/launch_gui.py
+Path=/home/thoschr/codes/codiac
+Terminal=false
+StartupNotify=true
+Categories=Development;Education;Office;
+MimeType=application/json;
+Actions=direct-launch;
+
+[Desktop Action direct-launch]
+Name=Launch Direct (Debug Mode)
+Exec=/home/thoschr/codes/codiac/.venv/bin/python /home/thoschr/codes/codiac/interview_tracker.py
