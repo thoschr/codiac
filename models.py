@@ -186,13 +186,54 @@ class ProgressTracker:
             self.topics[problem.topic].add_problem(problem)
     
     def add_session(self, session: StudySession):
-        """Add a study session and update attempt counters for worked problems."""
+        """Add a study session and update attempt counters and time for worked problems."""
         self.sessions.append(session)
         
-        # Update attempt counters for problems worked on in this session
-        for problem_title in session.problems_worked:
-            if problem_title in self.problems:
-                self.problems[problem_title].increment_attempts()
+        # Update attempt counters and distribute session time among problems
+        if session.problems_worked:
+            # Distribute session time equally among problems worked on
+            session_minutes = int(session.duration.total_seconds() / 60)
+            time_per_problem = session_minutes // len(session.problems_worked)
+            remaining_time = session_minutes % len(session.problems_worked)
+            
+            for i, problem_title in enumerate(session.problems_worked):
+                if problem_title in self.problems:
+                    self.problems[problem_title].increment_attempts()
+                    
+                    # Add time to problem (give extra minute to first problems for remainder)
+                    time_to_add = time_per_problem + (1 if i < remaining_time else 0)
+                    if time_to_add > 0:
+                        self.problems[problem_title].add_time(time_to_add)
+    
+    def remove_session(self, session: StudySession):
+        """Remove a study session and update attempt counters and time for worked problems."""
+        if session in self.sessions:
+            self.sessions.remove(session)
+            
+            # Reverse the changes made when the session was added
+            if session.problems_worked:
+                # Calculate the time that was distributed when session was added
+                session_minutes = int(session.duration.total_seconds() / 60)
+                time_per_problem = session_minutes // len(session.problems_worked)
+                remaining_time = session_minutes % len(session.problems_worked)
+                
+                for i, problem_title in enumerate(session.problems_worked):
+                    if problem_title in self.problems:
+                        problem = self.problems[problem_title]
+                        
+                        # Decrement attempts (but don't go below 0)
+                        if problem.attempts > 0:
+                            problem.attempts -= 1
+                        
+                        # Remove time that was added (give extra minute to first problems for remainder)
+                        time_to_remove = time_per_problem + (1 if i < remaining_time else 0)
+                        if time_to_remove > 0:
+                            # Calculate current time in minutes
+                            current_minutes = int(problem.time_spent.total_seconds() / 60)
+                            # Don't go below 0
+                            new_minutes = max(0, current_minutes - time_to_remove)
+                            # Reset and set new time
+                            problem.time_spent = timedelta(minutes=new_minutes)
     
     def get_overall_stats(self) -> dict:
         """Get overall progress statistics."""
@@ -367,3 +408,31 @@ class ProgressTracker:
                     updated_counts[problem_title] = self.problems[problem_title].attempts
         
         return updated_counts
+    
+    def recalculate_time_from_sessions(self) -> dict:
+        """Recalculate all problem times based on existing sessions.
+        
+        Returns a dictionary with the time (in minutes) updated for each problem.
+        """
+        # Reset all time counters to 0
+        for problem in self.problems.values():
+            problem.time_spent = timedelta(0)
+        
+        # Distribute time from all sessions
+        updated_times = {}
+        for session in self.sessions:
+            if session.problems_worked:
+                # Distribute session time equally among problems worked on
+                session_minutes = int(session.duration.total_seconds() / 60)
+                time_per_problem = session_minutes // len(session.problems_worked)
+                remaining_time = session_minutes % len(session.problems_worked)
+                
+                for i, problem_title in enumerate(session.problems_worked):
+                    if problem_title in self.problems:
+                        # Add time to problem (give extra minute to first problems for remainder)
+                        time_to_add = time_per_problem + (1 if i < remaining_time else 0)
+                        if time_to_add > 0:
+                            self.problems[problem_title].add_time(time_to_add)
+                            updated_times[problem_title] = int(self.problems[problem_title].time_spent.total_seconds() / 60)
+        
+        return updated_times
