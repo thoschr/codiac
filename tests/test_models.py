@@ -229,6 +229,110 @@ class TestProgressTracker:
         
         # Attempts should be incremented
         assert sample_problem.attempts == 1
+        
+    def test_add_session_distributes_time(self, empty_tracker):
+        """Test that adding a session distributes time to problems worked on."""
+        # Add some problems
+        problem1 = Problem("Problem 1", Difficulty.EASY, "Test", "url", "Arrays")
+        problem2 = Problem("Problem 2", Difficulty.MEDIUM, "Test", "url", "Arrays")
+        problem3 = Problem("Problem 3", Difficulty.HARD, "Test", "url", "Graphs")
+        
+        empty_tracker.add_problem(problem1)
+        empty_tracker.add_problem(problem2)
+        empty_tracker.add_problem(problem3)
+        
+        # Initial time should be 0
+        assert int(problem1.time_spent.total_seconds() / 60) == 0
+        assert int(problem2.time_spent.total_seconds() / 60) == 0
+        assert int(problem3.time_spent.total_seconds() / 60) == 0
+        
+        # Add a 60-minute session working on 2 problems
+        session = StudySession(60, "Test session", ["Problem 1", "Problem 2"])
+        empty_tracker.add_session(session)
+        
+        # Time should be distributed (30 minutes each)
+        assert int(problem1.time_spent.total_seconds() / 60) == 30
+        assert int(problem2.time_spent.total_seconds() / 60) == 30
+        assert int(problem3.time_spent.total_seconds() / 60) == 0  # Not worked on
+        
+        # Add another session with odd time distribution
+        session2 = StudySession(50, "Another session", ["Problem 1", "Problem 2", "Problem 3"])
+        empty_tracker.add_session(session2)
+        
+        # Time should be distributed (16+1, 16+1, 16 for remainder distribution)
+        assert int(problem1.time_spent.total_seconds() / 60) == 47  # 30 + 17
+        assert int(problem2.time_spent.total_seconds() / 60) == 47  # 30 + 17  
+        assert int(problem3.time_spent.total_seconds() / 60) == 16  # 0 + 16
+        
+    def test_recalculate_time_from_sessions(self, empty_tracker):
+        """Test that time recalculation from sessions works correctly."""
+        # Add problems
+        problem1 = Problem("Problem 1", Difficulty.EASY, "Test", "url", "Arrays")
+        problem2 = Problem("Problem 2", Difficulty.MEDIUM, "Test", "url", "Arrays")
+        
+        # Add some initial time manually
+        problem1.add_time(100)  # This should be reset
+        problem2.add_time(50)   # This should be reset
+        
+        empty_tracker.add_problem(problem1)
+        empty_tracker.add_problem(problem2)
+        
+        # Add sessions directly to simulate existing saved sessions
+        session1 = StudySession(60, "Session 1", ["Problem 1", "Problem 2"])
+        session2 = StudySession(30, "Session 2", ["Problem 1"])
+        
+        empty_tracker.sessions.append(session1)
+        empty_tracker.sessions.append(session2)
+        
+        # Recalculate time from sessions
+        updated_times = empty_tracker.recalculate_time_from_sessions()
+        
+        # Verify time was reset and recalculated
+        # Session 1: 60min / 2 problems = 30min each
+        # Session 2: 30min / 1 problem = 30min to Problem 1
+        # Total: Problem 1 = 60min, Problem 2 = 30min
+        assert int(problem1.time_spent.total_seconds() / 60) == 60
+        assert int(problem2.time_spent.total_seconds() / 60) == 30
+        
+        # Verify return value
+        assert updated_times["Problem 1"] == 60
+        assert updated_times["Problem 2"] == 30
+        
+    def test_remove_session_updates_problems(self, empty_tracker):
+        """Test that removing a session properly updates problem time and attempts."""
+        # Add problems
+        problem1 = Problem("Problem 1", Difficulty.EASY, "Test", "url", "Arrays")
+        problem2 = Problem("Problem 2", Difficulty.MEDIUM, "Test", "url", "Arrays")
+        
+        empty_tracker.add_problem(problem1)
+        empty_tracker.add_problem(problem2)
+        
+        # Add sessions
+        session1 = StudySession(60, "Session 1", ["Problem 1", "Problem 2"])
+        session2 = StudySession(30, "Session 2", ["Problem 1"])
+        
+        empty_tracker.add_session(session1)
+        empty_tracker.add_session(session2)
+        
+        # Verify initial state after adding sessions
+        assert int(problem1.time_spent.total_seconds() / 60) == 60  # 30 + 30
+        assert int(problem2.time_spent.total_seconds() / 60) == 30  # 30 + 0
+        assert problem1.attempts == 2
+        assert problem2.attempts == 1
+        
+        # Remove session1 (60min, 2 problems = 30min each)
+        empty_tracker.remove_session(session1)
+        
+        # Verify time and attempts were properly reduced
+        assert int(problem1.time_spent.total_seconds() / 60) == 30  # 60 - 30
+        assert int(problem2.time_spent.total_seconds() / 60) == 0   # 30 - 30
+        assert problem1.attempts == 1  # 2 - 1
+        assert problem2.attempts == 0  # 1 - 1
+        
+        # Verify session was removed
+        assert len(empty_tracker.sessions) == 1
+        assert session1 not in empty_tracker.sessions
+        assert session2 in empty_tracker.sessions
     
     def test_delete_problem(self, populated_tracker, sample_problem):
         """Test deleting a problem from the tracker."""

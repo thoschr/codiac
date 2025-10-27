@@ -274,6 +274,11 @@ class InterviewTrackerGUI:
                               command=self.recalculate_attempts)
         recalc_btn.pack(side='left', padx=(0, 10))
         
+        # Recalculate time button
+        recalc_time_btn = ttk.Button(controls_frame, text="⏱️ Recalculate Time", 
+                                   command=self.recalculate_time_from_sessions)
+        recalc_time_btn.pack(side='left', padx=(0, 10))
+        
         # Filters frame
         filters_frame = ttk.LabelFrame(controls_frame, text="Filters")
         filters_frame.pack(side='right', padx=(10, 0))
@@ -798,10 +803,10 @@ class InterviewTrackerGUI:
                     sessions = sorted(self.tracker.sessions, key=lambda s: s.date, reverse=True)
                     if 0 <= session_index < len(sessions):
                         session_to_delete = sessions[session_index]
-                        self.tracker.sessions.remove(session_to_delete)
+                        self.tracker.remove_session(session_to_delete)
                         self.save_data()
                         self.refresh_all_views()
-                        self.status_bar.config(text=f"Deleted session from {session_date} - Dashboard updated")
+                        self.status_bar.config(text=f"Deleted session from {session_date} - Time and attempts updated")
                     else:
                         messagebox.showerror("Error", "Session not found.")
                 else:
@@ -1263,6 +1268,45 @@ class InterviewTrackerGUI:
                     
             except Exception as e:
                 messagebox.showerror("Error", f"Error recalculating attempts: {str(e)}")
+
+    def recalculate_time_from_sessions(self):
+        """Recalculate problem time spent based on existing sessions."""
+        result = messagebox.askyesno(
+            "Recalculate Time from Sessions", 
+            "This will recalculate all problem time tracking based on existing study sessions.\n\n"
+            "All current time spent values will be reset and recalculated by distributing session durations among the problems worked on.\n\n"
+            "Do you want to continue?"
+        )
+        
+        if result:
+            try:
+                updated_times = self.tracker.recalculate_time_from_sessions()
+                
+                if updated_times:
+                    # Save the updated data
+                    self.save_data()
+                    self.refresh_all_views()
+                    
+                    # Show summary of updates
+                    summary_lines = []
+                    for problem_title, time_minutes in updated_times.items():
+                        summary_lines.append(f"• {problem_title}: {time_minutes} minutes")
+                    
+                    summary = "\n".join(summary_lines[:10])  # Show max 10 problems
+                    if len(updated_times) > 10:
+                        summary += f"\n... and {len(updated_times) - 10} more"
+                    
+                    messagebox.showinfo(
+                        "Time Recalculation Complete", 
+                        f"Successfully recalculated time spent for {len(updated_times)} problems:\n\n{summary}"
+                    )
+                    
+                    self.status_bar.config(text=f"Recalculated time tracking for {len(updated_times)} problems")
+                else:
+                    messagebox.showinfo("Time Recalculation Complete", "No problems found with session data to update.")
+                    
+            except Exception as e:
+                messagebox.showerror("Error", f"Error recalculating time: {str(e)}")
 
 
 class ProblemDialog:
