@@ -238,6 +238,9 @@ class InterviewTrackerGUI:
         
         self.recent_sessions_tree.pack(fill='both', expand=True, padx=10, pady=10)
         
+        # Bind double-click to view session details
+        self.recent_sessions_tree.bind("<Double-1>", self.view_session_details)
+        
         # Pack canvas and scrollbar
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -631,14 +634,15 @@ class InterviewTrackerGUI:
         self.recent_sessions_tree.delete(*self.recent_sessions_tree.get_children())
         
         recent_sessions = sorted(self.tracker.sessions, key=lambda s: s.date, reverse=True)[:5]
-        for session in recent_sessions:
+        for i, session in enumerate(recent_sessions):
             duration = f"{int(session.duration.total_seconds() / 60)}m"
             problems = ", ".join(session.problems_worked[:2]) + ("..." if len(session.problems_worked) > 2 else "")
             notes = session.notes[:50] + "..." if len(session.notes) > 50 else session.notes
             
             self.recent_sessions_tree.insert('', 'end', 
                                            text=session.date.strftime('%Y-%m-%d %H:%M'),
-                                           values=(duration, problems, notes))
+                                           values=(duration, problems, notes),
+                                           tags=(str(i),))  # Store session index
     
     def refresh_problems_view(self):
         """Refresh the problems list."""
@@ -1633,13 +1637,21 @@ class SessionDetailsDialog:
         self.dialog = tk.Toplevel(parent)
         self.dialog.title(f"Session Details - {session.date.strftime('%Y-%m-%d %H:%M')}")
         self.dialog.geometry("500x400")
+        self.dialog.resizable(False, False)
         self.dialog.transient(parent)
-        self.dialog.grab_set()
         
         # Center the dialog
         self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
         
         self.create_widgets(session)
+        
+        # Make sure the dialog is visible before grabbing focus
+        self.dialog.update_idletasks()
+        self.dialog.deiconify()
+        self.dialog.lift()
+        self.dialog.focus_force()
+        self.dialog.grab_set()
+        
         self.dialog.wait_window()
     
     def create_widgets(self, session):
