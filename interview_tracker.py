@@ -982,6 +982,19 @@ class InterviewTrackerGUI:
             }[difficulty]
             
             problem = Problem(title, difficulty_enum, description, url, topic)
+            
+            # Apply status if provided from dialog
+            if status:
+                status_enum = {
+                    'Not Started': Status.NOT_STARTED,
+                    'In Progress': Status.IN_PROGRESS,
+                    'Completed': Status.COMPLETED,
+                    'Needs Review': Status.NEEDS_REVIEW
+                }.get(status, Status.NOT_STARTED)
+                problem.status = status_enum
+                if status_enum == Status.COMPLETED:
+                    problem.completed_at = datetime.now()
+            
             self.tracker.add_problem(problem)
             self.save_data()
             self.refresh_all_views()
@@ -1300,16 +1313,13 @@ class ProblemDialog:
                                   values=list(topics), state='readonly')
         topic_combo.grid(row=2, column=1, columnspan=2, sticky='ew', pady=(0, 10))
         
-        # Status (only show for editing existing problems)
-        if hasattr(self, 'status_var'):
-            ttk.Label(main_frame, text="Status:").grid(row=3, column=0, sticky='w', pady=(0, 5))
-            status_combo = ttk.Combobox(main_frame, textvariable=self.status_var,
-                                       values=['Not Started', 'In Progress', 'Completed', 'Needs Review'],
-                                       state='readonly')
-            status_combo.grid(row=3, column=1, sticky='w', pady=(0, 10))
-            status_row = 4
-        else:
-            status_row = 3
+        # Status
+        ttk.Label(main_frame, text="Status:").grid(row=3, column=0, sticky='w', pady=(0, 5))
+        status_combo = ttk.Combobox(main_frame, textvariable=self.status_var,
+                                   values=['Not Started', 'In Progress', 'Completed', 'Needs Review'],
+                                   state='readonly')
+        status_combo.grid(row=3, column=1, sticky='w', pady=(0, 10))
+        status_row = 4
         
         # URL
         ttk.Label(main_frame, text="From (optional):").grid(row=status_row, column=0, sticky='w', pady=(0, 5))
@@ -1355,8 +1365,8 @@ class ProblemDialog:
         
         description = self.description_text.get('1.0', 'end-1c').strip()
         
-        # Get status if editing
-        status = self.status_var.get() if hasattr(self, 'status_var') else None
+        # Always include status
+        status = self.status_var.get()
         
         self.result = (title, self.difficulty_var.get(), topic, description, self.url_var.get().strip(), status)
         self.dialog.destroy()
