@@ -4,7 +4,10 @@ Additional utilities and reporting features for the interview tracker.
 """
 from datetime import datetime, timedelta
 from typing import Dict, List, Tuple
-from models import ProgressTracker, Status, Difficulty
+try:
+    from .models import ProgressTracker, Status, Difficulty
+except ImportError:
+    from models import ProgressTracker, Status, Difficulty
 from tabulate import tabulate
 
 

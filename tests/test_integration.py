@@ -6,9 +6,9 @@ import tempfile
 import os
 from datetime import datetime, timedelta
 
-from models import ProgressTracker, Problem, Topic, StudySession, Difficulty, Status
-from data_manager import DataManager
-from analytics import ProgressAnalyzer
+from src.models import ProgressTracker, Problem, Topic, StudySession, Difficulty, Status
+from src.data_manager import DataManager
+from src.analytics import ProgressAnalyzer
 
 
 @pytest.mark.integration

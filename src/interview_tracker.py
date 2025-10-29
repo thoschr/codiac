@@ -10,9 +10,16 @@ from datetime import datetime, timedelta
 import json
 from typing import Optional, List
 
-from models import ProgressTracker, Topic, Problem, Difficulty, Status, StudySession
-from data_manager import DataManager
-from analytics import ProgressAnalyzer
+try:
+    # Try relative imports first (when used as a module)
+    from .models import ProgressTracker, Topic, Problem, Difficulty, Status, StudySession
+    from .data_manager import DataManager
+    from .analytics import ProgressAnalyzer
+except ImportError:
+    # Fall back to absolute imports (when run as a script)
+    from models import ProgressTracker, Topic, Problem, Difficulty, Status, StudySession
+    from data_manager import DataManager
+    from analytics import ProgressAnalyzer
 
 
 class InterviewTrackerGUI:
@@ -125,7 +132,8 @@ class InterviewTrackerGUI:
                 tracker = self.data_manager.create_sample_data()
             else:
                 tracker = ProgressTracker()
-            self.save_data()
+            # Save the new tracker data
+            self.data_manager.save(tracker)
         return tracker
     
     def save_data(self):

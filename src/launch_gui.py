@@ -30,7 +30,10 @@ def main():
     
     try:
         # Import and run the GUI application
-        from interview_tracker import main as run_gui
+        try:
+            from .interview_tracker import main as run_gui
+        except ImportError:
+            from interview_tracker import main as run_gui
         run_gui()
     except ImportError as e:
         root = tk.Tk()

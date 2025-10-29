@@ -14,11 +14,11 @@ A Python GUI application to track your progress in interview preparation, includ
 ## Quick Start
 
 ```bash
-python interview_tracker.py
+python src/interview_tracker.py
 ```
 or
 ```bash
-python launch_gui.py
+python src/launch_gui.py
 ```
 
 ## GUI Features
@@ -49,7 +49,7 @@ The application provides an intuitive interface with multiple tabs:
 
 1. Clone this repository
 2. Install dependencies: `pip install -r requirements.txt`
-3. Run: `python interview_tracker.py`
+3. Run: `python src/interview_tracker.py`
 
 ## Data Storage
 

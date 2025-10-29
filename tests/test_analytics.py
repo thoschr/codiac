@@ -4,8 +4,8 @@ Tests for the analytics module.
 import pytest
 from datetime import datetime, timedelta
 
-from analytics import ProgressAnalyzer
-from models import ProgressTracker, Problem, StudySession, Difficulty, Status
+from src.analytics import ProgressAnalyzer
+from src.models import ProgressTracker, Problem, StudySession, Difficulty, Status
 
 
 class TestProgressAnalyzer:

@@ -7,8 +7,8 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from models import ProgressTracker, Problem, Topic, StudySession, Difficulty, Status
-from data_manager import DataManager
+from src.models import ProgressTracker, Problem, Topic, StudySession, Difficulty, Status
+from src.data_manager import DataManager
 
 
 @pytest.fixture

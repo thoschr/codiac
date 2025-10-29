@@ -6,8 +6,8 @@ import json
 import os
 from pathlib import Path
 
-from data_manager import DataManager
-from models import ProgressTracker, Topic
+from src.data_manager import DataManager
+from src.models import ProgressTracker, Topic
 
 
 class TestDataManager:

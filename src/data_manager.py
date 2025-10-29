@@ -6,7 +6,10 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from models import ProgressTracker
+try:
+    from .models import ProgressTracker
+except ImportError:
+    from models import ProgressTracker
 
 
 class DataManager:
@@ -81,7 +84,10 @@ class DataManager:
     
     def create_sample_data(self) -> ProgressTracker:
         """Create sample data for demonstration."""
-        from models import Topic, Problem, Difficulty, Status, StudySession
+        try:
+            from .models import Topic, Problem, Difficulty, Status, StudySession
+        except ImportError:
+            from models import Topic, Problem, Difficulty, Status, StudySession
         
         tracker = ProgressTracker()
         

@@ -4,7 +4,7 @@ Tests for the models module.
 import pytest
 from datetime import datetime, timedelta
 
-from models import Problem, Topic, StudySession, ProgressTracker, Difficulty, Status
+from src.models import Problem, Topic, StudySession, ProgressTracker, Difficulty, Status
 
 
 class TestProblem:
