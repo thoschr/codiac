@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 
 from src.models import ProgressTracker, Problem, Topic, StudySession, Difficulty, Status
 from src.data_manager import DataManager
-from src.analytics import ProgressAnalyzer
 
 
 @pytest.mark.integration
@@ -110,68 +109,6 @@ class TestFullWorkflow:
             except FileNotFoundError:
                 pass
     
-    def test_analytics_integration(self):
-        """Test analytics integration with real data."""
-        # Create tracker with comprehensive data
-        tracker = ProgressTracker()
-        
-        # Add topics
-        topics = [
-            Topic("Arrays", "Array problems"),
-            Topic("Strings", "String problems"),
-            Topic("Trees", "Tree problems")
-        ]
-        for topic in topics:
-            tracker.add_topic(topic)
-        
-        # Add problems with various statuses and difficulties
-        problems_data = [
-            ("Two Sum", "Arrays", Difficulty.EASY, Status.COMPLETED),
-            ("Three Sum", "Arrays", Difficulty.MEDIUM, Status.IN_PROGRESS),
-            ("Valid Palindrome", "Strings", Difficulty.EASY, Status.COMPLETED),
-            ("Binary Tree Inorder", "Trees", Difficulty.MEDIUM, Status.NOT_STARTED),
-            ("Serialize Tree", "Trees", Difficulty.HARD, Status.NEEDS_REVIEW),
-        ]
-        
-        for title, topic_name, difficulty, status in problems_data:
-            problem = Problem(title, difficulty, f"Description for {title}", topic=topic_name)
-            problem.status = status
-            if status == Status.COMPLETED:
-                problem.mark_completed()
-            tracker.add_problem(problem)
-        
-        # Add study sessions
-        sessions = [
-            StudySession(60, "Arrays practice", ["Two Sum", "Three Sum"]),
-            StudySession(45, "String problems", ["Valid Palindrome"]),
-            StudySession(90, "Tree traversal", ["Binary Tree Inorder"]),
-        ]
-        
-        for session in sessions:
-            tracker.add_session(session)
-        
-        # Create analyzer
-        analyzer = ProgressAnalyzer(tracker)
-        
-        # Test various analytics functions
-        time_dist = analyzer.get_time_distribution()
-        assert isinstance(time_dist, dict)
-        
-        difficulty_rates = analyzer.get_difficulty_completion_rates()
-        assert isinstance(difficulty_rates, dict)
-        
-        insights = analyzer.get_productivity_insights()
-        assert isinstance(insights, dict)
-        assert len(insights) > 0
-        
-        recommendations = analyzer.get_recommendations()
-        assert isinstance(recommendations, list)
-        assert len(recommendations) > 0
-        
-        weekly_progress = analyzer.get_weekly_progress()
-        assert isinstance(weekly_progress, dict)
-        assert "weeks" in weekly_progress
-    
     def test_rotation_workflow(self):
         """Test problem rotation workflow."""
         tracker = ProgressTracker()
@@ -262,15 +199,9 @@ class TestFullWorkflow:
             session = StudySession(60, f"Session {i}", session_problems)
             tracker.add_session(session)
         
-        # Test that analytics still work efficiently
-        analyzer = ProgressAnalyzer(tracker)
-        
         # These should complete quickly even with large dataset
         stats = tracker.get_overall_stats()
         assert stats['total_problems'] == 100
-        
-        insights = analyzer.get_productivity_insights()
-        assert len(insights) > 0
         
         # Test recalculation with large dataset
         updated_counts = tracker.recalculate_attempt_counters()

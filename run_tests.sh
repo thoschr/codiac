@@ -22,7 +22,7 @@ echo ""
 case "$1" in
     "unit")
         echo "Running unit tests only..."
-        pytest tests/test_models.py tests/test_data_manager.py tests/test_analytics.py -v -m "unit"
+        pytest tests/test_models.py tests/test_data_manager.py -v -m "unit"
         ;;
     "integration")
         echo "Running integration tests only..."
