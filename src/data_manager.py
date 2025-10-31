@@ -17,15 +17,10 @@ class DataManager:
     
     def __init__(self, data_file: str = "interview_progress.json"):
         self.data_file = Path(data_file)
-        self.backup_file = Path(f"{data_file}.backup")
     
     def save(self, tracker: ProgressTracker) -> bool:
         """Save progress tracker to file."""
         try:
-            # Create backup of existing file
-            if self.data_file.exists():
-                self.data_file.replace(self.backup_file)
-            
             # Save new data
             with open(self.data_file, 'w', encoding='utf-8') as f:
                 json.dump(tracker.to_dict(), f, indent=2, ensure_ascii=False)
@@ -33,9 +28,6 @@ class DataManager:
             return True
         except Exception as e:
             print(f"Error saving data: {e}")
-            # Restore backup if save failed
-            if self.backup_file.exists():
-                self.backup_file.replace(self.data_file)
             return False
     
     def load(self) -> Optional[ProgressTracker]:
@@ -49,16 +41,6 @@ class DataManager:
             return ProgressTracker.from_dict(data)
         except Exception as e:
             print(f"Error loading data: {e}")
-            
-            # Try to load from backup
-            if self.backup_file.exists():
-                try:
-                    with open(self.backup_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    print("Loaded from backup file.")
-                    return ProgressTracker.from_dict(data)
-                except Exception as backup_e:
-                    print(f"Error loading backup: {backup_e}")
             
             return None
     

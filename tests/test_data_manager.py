@@ -18,7 +18,6 @@ class TestDataManager:
         manager = DataManager(temp_data_file)
         
         assert manager.data_file == Path(temp_data_file)
-        assert manager.backup_file == Path(f"{temp_data_file}.backup")
     
     def test_save_empty_tracker(self, data_manager, empty_tracker):
         """Test saving an empty tracker."""
@@ -72,19 +71,6 @@ class TestDataManager:
             assert loaded_problem.title == original_problem.title
             assert loaded_problem.difficulty == original_problem.difficulty
             assert loaded_problem.status == original_problem.status
-    
-    def test_backup_creation(self, data_manager, empty_tracker):
-        """Test that backup files are created correctly."""
-        # Create initial file
-        data_manager.save(empty_tracker)
-        assert data_manager.data_file.exists()
-        
-        # Modify and save again
-        empty_tracker.add_topic(Topic("Test Topic", "Test description"))
-        data_manager.save(empty_tracker)
-        
-        # Backup should exist
-        assert data_manager.backup_file.exists()
     
     def test_create_sample_data(self, data_manager):
         """Test creating sample data."""
