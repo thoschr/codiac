@@ -14,7 +14,6 @@ def check_dependencies():
         from tkinter import ttk
         import datetime
         import json
-        import tabulate
         return True
     except ImportError as e:
         messagebox.showerror("Missing Dependencies", 
