@@ -72,22 +72,6 @@ class TestDataManager:
             assert loaded_problem.difficulty == original_problem.difficulty
             assert loaded_problem.status == original_problem.status
     
-    def test_create_sample_data(self, data_manager):
-        """Test creating sample data."""
-        tracker = data_manager.create_sample_data()
-        
-        assert len(tracker.problems) > 0
-        assert len(tracker.topics) > 0
-        assert len(tracker.sessions) >= 0
-        
-        # Verify sample data structure
-        problem_titles = list(tracker.problems.keys())
-        assert len(problem_titles) > 0
-        
-        # Check that problems are linked to topics
-        for problem in tracker.problems.values():
-            assert problem.topic in tracker.topics
-    
     def test_invalid_json_handling(self, data_manager, temp_data_file):
         """Test handling of invalid JSON files."""
         # Write invalid JSON to file

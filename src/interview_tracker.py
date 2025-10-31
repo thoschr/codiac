@@ -121,15 +121,7 @@ class InterviewTrackerGUI:
         """Load existing tracker or create new one."""
         tracker = self.data_manager.load()
         if tracker is None:
-            # Create with sample data if no existing data
-            response = messagebox.askyesno(
-                "Welcome to Interview Tracker",
-                "No existing data found. Would you like to start with sample data?"
-            )
-            if response:
-                tracker = self.data_manager.create_sample_data()
-            else:
-                tracker = ProgressTracker()
+            tracker = ProgressTracker()
             # Save the new tracker data
             self.data_manager.save(tracker)
         return tracker
