@@ -9,7 +9,6 @@ A Python GUI application to track your progress in interview preparation, includ
 - Time tracking for study sessions
 - Progress statistics and analytics
 - Modern graphical user interface
-- Data persistence with automatic backups
 
 ## Quick Start
 
@@ -53,4 +52,4 @@ The application provides an intuitive interface with multiple tabs:
 
 ## Data Storage
 
-All data is automatically saved to `interview_progress.json` with backup files created for safety.
+All data is automatically saved to `interview_progress.json`.
