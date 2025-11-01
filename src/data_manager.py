@@ -19,8 +19,13 @@ class DataManager:
         loc_path = Path.home() / ".codiac"
         self.data_location = loc_path / loc_file
         
-        if not self.data_location.exists():
-            # Create default data file location
+        # Check if a custom data_file path is provided (not the default)
+        if data_file != "interview_progress.json":
+            # Custom file path provided - use it directly
+            self.data_file = Path(data_file)
+            print(f"Using custom data file: {self.data_file}")
+        elif not self.data_location.exists():
+            # No custom path and no config file - create default
             self.data_file = loc_path / data_file
             loc = {
                 "data_location": str(self.data_file)
@@ -40,7 +45,6 @@ class DataManager:
                 with open(self.data_location, 'r', encoding='utf-8') as f:
                     location_data = json.load(f)
                     self.data_file = Path(location_data["data_location"])
-                    print(f"Data file: {self.data_file}")
             except Exception as e:
                 print(f"Error reading data location: {e}")
                 # Fallback to default location
