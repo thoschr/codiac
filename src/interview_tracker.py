@@ -146,8 +146,8 @@ class InterviewTrackerGUI:
         """Create the main application widgets."""
         top_frame = tk.Frame(self.root)
         top_frame.pack(side="top",anchor="nw",padx=50,pady=20)
-        top_button = tk.Button(top_frame, text="Click Me", command=lambda: print("Button clicked!"))
-        top_button.pack()
+        top_label = tk.Label(top_frame, text=self.data_manager.data_file)
+        top_label.pack()
         # Main notebook for tabs
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
