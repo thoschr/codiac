@@ -23,7 +23,6 @@ class DataManager:
         if data_file != "interview_progress.json":
             # Custom file path provided - use it directly
             self.data_file = Path(data_file)
-            print(f"Using custom data file: {self.data_file}")
         elif not self.data_location.exists():
             # No custom path and no config file - create default
             self.data_file = loc_path / data_file

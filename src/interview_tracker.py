@@ -1466,6 +1466,455 @@ class InterviewTrackerGUI:
                         break
                 break
 
+class ProblemDialog:
+    """Dialog for adding/editing problems."""
+    
+    def __init__(self, parent, topics, problem=None):
+        self.result = None
+        
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Add Problem" if problem is None else "Edit Problem")
+        self.dialog.geometry("500x500")
+        self.dialog.resizable(False, False)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        # Variables
+        self.title_var = tk.StringVar(value=problem.title if problem else "")
+        self.difficulty_var = tk.StringVar(value=problem.difficulty.value if problem else "Easy")
+        self.topic_var = tk.StringVar(value=problem.topic if problem else "")
+        self.description_var = tk.StringVar(value=problem.description if problem else "")
+        self.url_var = tk.StringVar(value=problem.url if problem else "")
+        self.status_var = tk.StringVar(value=problem.status.value if problem else "Not Started")
+        
+        self.create_widgets(topics)
+        
+        # Wait for dialog to close
+        self.dialog.wait_window()
+    
+    def create_widgets(self, topics):
+        """Create dialog widgets."""
+        main_frame = ttk.Frame(self.dialog, padding="20")
+        main_frame.pack(fill='both', expand=True)
+        
+        # Title
+        ttk.Label(main_frame, text="Problem Title:").grid(row=0, column=0, sticky='w', pady=(0, 5))
+        title_entry = ttk.Entry(main_frame, textvariable=self.title_var, width=50)
+        title_entry.grid(row=0, column=1, columnspan=2, sticky='ew', pady=(0, 10))
+        title_entry.focus()
+        
+        # Difficulty
+        ttk.Label(main_frame, text="Difficulty:").grid(row=1, column=0, sticky='w', pady=(0, 5))
+        difficulty_combo = ttk.Combobox(main_frame, textvariable=self.difficulty_var, 
+                                       values=['Easy', 'Medium', 'Hard'], state='readonly')
+        difficulty_combo.grid(row=1, column=1, sticky='w', pady=(0, 10))
+        
+        # Topic
+        ttk.Label(main_frame, text="Topic:").grid(row=2, column=0, sticky='w', pady=(0, 5))
+        topic_combo = ttk.Combobox(main_frame, textvariable=self.topic_var, 
+                                  values=list(topics), state='readonly')
+        topic_combo.grid(row=2, column=1, columnspan=2, sticky='ew', pady=(0, 10))
+        
+        # Status
+        ttk.Label(main_frame, text="Status:").grid(row=3, column=0, sticky='w', pady=(0, 5))
+        status_combo = ttk.Combobox(main_frame, textvariable=self.status_var,
+                                   values=['Not Started', 'In Progress', 'Completed', 'Needs Review'],
+                                   state='readonly')
+        status_combo.grid(row=3, column=1, sticky='w', pady=(0, 10))
+        
+        # URL
+        ttk.Label(main_frame, text="From (optional):").grid(row=4, column=0, sticky='w', pady=(0, 5))
+        url_entry = ttk.Entry(main_frame, textvariable=self.url_var, width=50)
+        url_entry.grid(row=4, column=1, columnspan=2, sticky='ew', pady=(0, 10))
+        
+        # Description
+        ttk.Label(main_frame, text="Description:").grid(row=5, column=0, sticky='nw', pady=(0, 5))
+        desc_frame = ttk.Frame(main_frame)
+        desc_frame.grid(row=5, column=1, columnspan=2, sticky='ew', pady=(0, 20))
+        
+        self.description_text = tk.Text(desc_frame, height=6, width=50, wrap='word')
+        desc_scrollbar = ttk.Scrollbar(desc_frame, orient='vertical', command=self.description_text.yview)
+        self.description_text.configure(yscrollcommand=desc_scrollbar.set)
+        
+        self.description_text.pack(side='left', fill='both', expand=True)
+        desc_scrollbar.pack(side='right', fill='y')
+        
+        if self.description_var.get():
+            self.description_text.insert('1.0', self.description_var.get())
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=6, column=0, columnspan=3, pady=20)
+        
+        ttk.Button(button_frame, text="Save", command=self.save).pack(side='left', padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left')
+        
+        # Configure grid weights
+        main_frame.columnconfigure(1, weight=1)
+    
+    def save(self):
+        """Save the problem data."""
+        title = self.title_var.get().strip()
+        if not title:
+            messagebox.showerror("Error", "Please enter a problem title.")
+            return
+        
+        topic = self.topic_var.get()
+        if not topic:
+            messagebox.showerror("Error", "Please select a topic.")
+            return
+        
+        description = self.description_text.get('1.0', 'end-1c').strip()
+        status = self.status_var.get()
+        
+        self.result = (title, self.difficulty_var.get(), topic, description, self.url_var.get().strip(), status)
+        self.dialog.destroy()
+    
+    def cancel(self):
+        """Cancel the dialog."""
+        self.dialog.destroy()
+
+
+class TopicDialog:
+    """Dialog for adding topics."""
+    
+    def __init__(self, parent):
+        self.result = None
+        
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Add Topic")
+        self.dialog.geometry("400x200")
+        self.dialog.resizable(False, False)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 100, parent.winfo_rooty() + 100))
+        
+        self.create_widgets()
+        self.dialog.wait_window()
+    
+    def create_widgets(self):
+        """Create dialog widgets."""
+        main_frame = ttk.Frame(self.dialog, padding="20")
+        main_frame.pack(fill='both', expand=True)
+        
+        # Name
+        ttk.Label(main_frame, text="Topic Name:").grid(row=0, column=0, sticky='w', pady=(0, 5))
+        self.name_entry = ttk.Entry(main_frame, width=40)
+        self.name_entry.grid(row=0, column=1, sticky='ew', pady=(0, 10))
+        self.name_entry.focus()
+        
+        # Description
+        ttk.Label(main_frame, text="Description:").grid(row=1, column=0, sticky='w', pady=(0, 5))
+        self.description_entry = ttk.Entry(main_frame, width=40)
+        self.description_entry.grid(row=1, column=1, sticky='ew', pady=(0, 20))
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=2, column=0, columnspan=2, pady=20)
+        
+        ttk.Button(button_frame, text="Add", command=self.save).pack(side='left', padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left')
+        
+        main_frame.columnconfigure(1, weight=1)
+    
+    def save(self):
+        """Save the topic data."""
+        name = self.name_entry.get().strip()
+        if not name:
+            messagebox.showerror("Error", "Please enter a topic name.")
+            return
+        
+        description = self.description_entry.get().strip()
+        self.result = (name, description)
+        self.dialog.destroy()
+    
+    def cancel(self):
+        """Cancel the dialog."""
+        self.dialog.destroy()
+
+
+class SessionDialog:
+    """Dialog for adding study sessions."""
+    
+    def __init__(self, parent, problems):
+        self.result = None
+        
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title("Add Study Session")
+        self.dialog.geometry("500x350")
+        self.dialog.resizable(False, False)
+        self.dialog.transient(parent)
+        self.dialog.grab_set()
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        self.problems = problems
+        self.create_widgets()
+        self.dialog.wait_window()
+    
+    def create_widgets(self):
+        """Create dialog widgets."""
+        main_frame = ttk.Frame(self.dialog, padding="20")
+        main_frame.pack(fill='both', expand=True)
+        
+        # Duration
+        ttk.Label(main_frame, text="Duration (minutes):").grid(row=0, column=0, sticky='w', pady=(0, 5))
+        self.duration_entry = ttk.Entry(main_frame, width=20)
+        self.duration_entry.grid(row=0, column=1, sticky='w', pady=(0, 10))
+        self.duration_entry.focus()
+        
+        # Notes
+        ttk.Label(main_frame, text="Session Notes:").grid(row=1, column=0, sticky='nw', pady=(0, 5))
+        notes_frame = ttk.Frame(main_frame)
+        notes_frame.grid(row=1, column=1, columnspan=2, sticky='ew', pady=(0, 10))
+        
+        self.notes_text = tk.Text(notes_frame, height=4, width=40, wrap='word')
+        notes_scrollbar = ttk.Scrollbar(notes_frame, orient='vertical', command=self.notes_text.yview)
+        self.notes_text.configure(yscrollcommand=notes_scrollbar.set)
+        
+        self.notes_text.pack(side='left', fill='both', expand=True)
+        notes_scrollbar.pack(side='right', fill='y')
+        
+        # Problems worked on
+        ttk.Label(main_frame, text="Problems Worked On:").grid(row=2, column=0, sticky='nw', pady=(0, 5))
+        problems_frame = ttk.Frame(main_frame)
+        problems_frame.grid(row=2, column=1, columnspan=2, sticky='ew', pady=(0, 20))
+        
+        # Listbox for problems selection
+        self.problems_listbox = tk.Listbox(problems_frame, height=6, selectmode='multiple')
+        problems_scrollbar = ttk.Scrollbar(problems_frame, orient='vertical', command=self.problems_listbox.yview)
+        self.problems_listbox.configure(yscrollcommand=problems_scrollbar.set)
+        
+        for problem in self.problems:
+            self.problems_listbox.insert('end', problem)
+        
+        self.problems_listbox.pack(side='left', fill='both', expand=True)
+        problems_scrollbar.pack(side='right', fill='y')
+        
+        # Buttons
+        button_frame = ttk.Frame(main_frame)
+        button_frame.grid(row=3, column=0, columnspan=3, pady=20)
+        
+        ttk.Button(button_frame, text="Add", command=self.save).pack(side='left', padx=(0, 10))
+        ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left')
+        
+        main_frame.columnconfigure(1, weight=1)
+    
+    def save(self):
+        """Save the session data."""
+        try:
+            duration = int(self.duration_entry.get().strip())
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid duration in minutes.")
+            return
+        
+        notes = self.notes_text.get('1.0', 'end-1c').strip()
+        
+        # Get selected problems
+        selected_indices = self.problems_listbox.curselection()
+        problems_worked = [self.problems_listbox.get(i) for i in selected_indices]
+        
+        self.result = (duration, notes, problems_worked)
+        self.dialog.destroy()
+    
+    def cancel(self):
+        """Cancel the dialog."""
+        self.dialog.destroy()
+
+
+class ProblemDetailsDialog:
+    """Dialog showing detailed problem information."""
+    
+    def __init__(self, parent, problem):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(f"Problem Details - {problem.title}")
+        self.dialog.geometry("600x500")
+        self.dialog.transient(parent)
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        self.create_widgets(problem)
+        
+        # Set grab after the window is configured and widgets are created
+        self.dialog.update_idletasks()
+        self.dialog.grab_set()
+        self.dialog.wait_window()
+    
+    def create_widgets(self, problem):
+        """Create dialog widgets."""
+        main_frame = ttk.Frame(self.dialog, padding="20")
+        main_frame.pack(fill='both', expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text=problem.title, font=('Arial', 16, 'bold'))
+        title_label.pack(anchor='w', pady=(0, 10))
+        
+        # Details frame
+        details_frame = ttk.Frame(main_frame)
+        details_frame.pack(fill='x', pady=(0, 10))
+        
+        # Left column
+        left_frame = ttk.Frame(details_frame)
+        left_frame.pack(side='left', fill='both', expand=True)
+        
+        ttk.Label(left_frame, text=f"Topic: {problem.topic}", font=('Arial', 11)).pack(anchor='w', pady=2)
+        ttk.Label(left_frame, text=f"Difficulty: {problem.difficulty.value}", font=('Arial', 11)).pack(anchor='w', pady=2)
+        ttk.Label(left_frame, text=f"Status: {problem.status.value}", font=('Arial', 11)).pack(anchor='w', pady=2)
+        
+        # Right column
+        right_frame = ttk.Frame(details_frame)
+        right_frame.pack(side='right', fill='both', expand=True)
+        
+        time_spent = int(problem.time_spent.total_seconds() / 60)
+        ttk.Label(right_frame, text=f"Attempts: {problem.attempts}", font=('Arial', 11)).pack(anchor='w', pady=2)
+        ttk.Label(right_frame, text=f"Time Spent: {time_spent} minutes", font=('Arial', 11)).pack(anchor='w', pady=2)
+        
+        if problem.completed_at:
+            completed_date = problem.completed_at.strftime('%Y-%m-%d %H:%M')
+            ttk.Label(right_frame, text=f"Completed: {completed_date}", font=('Arial', 11)).pack(anchor='w', pady=2)
+        
+        # URL
+        if problem.url:
+            ttk.Label(main_frame, text="From:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            url_label = ttk.Label(main_frame, text=problem.url, foreground='blue', cursor='hand2')
+            url_label.pack(anchor='w')
+        
+        # Description
+        if problem.description:
+            ttk.Label(main_frame, text="Description:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            
+            desc_frame = ttk.Frame(main_frame)
+            desc_frame.pack(fill='both', expand=True, pady=(0, 10))
+            
+            desc_text = tk.Text(desc_frame, height=6, wrap='word', state='disabled')
+            desc_scrollbar = ttk.Scrollbar(desc_frame, orient='vertical', command=desc_text.yview)
+            desc_text.configure(yscrollcommand=desc_scrollbar.set)
+            
+            desc_text.config(state='normal')
+            desc_text.insert('1.0', problem.description)
+            desc_text.config(state='disabled')
+            
+            desc_text.pack(side='left', fill='both', expand=True)
+            desc_scrollbar.pack(side='right', fill='y')
+        
+        # Notes
+        if problem.notes:
+            ttk.Label(main_frame, text="Notes:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            
+            notes_frame = ttk.Frame(main_frame)
+            notes_frame.pack(fill='both', expand=True, pady=(0, 10))
+            
+            notes_text = tk.Text(notes_frame, height=6, wrap='word', state='disabled')
+            notes_scrollbar = ttk.Scrollbar(notes_frame, orient='vertical', command=notes_text.yview)
+            notes_text.configure(yscrollcommand=notes_scrollbar.set)
+            
+            notes_text.config(state='normal')
+            for note in problem.notes:
+                notes_text.insert('end', f"• {note}\n")
+            notes_text.config(state='disabled')
+            
+            notes_text.pack(side='left', fill='both', expand=True)
+            notes_scrollbar.pack(side='right', fill='y')
+        
+        # Close button
+        close_btn = ttk.Button(main_frame, text="Close", command=self.dialog.destroy)
+        close_btn.pack(pady=20)
+
+
+class SessionDetailsDialog:
+    """Dialog showing detailed session information."""
+    
+    def __init__(self, parent, session):
+        self.dialog = tk.Toplevel(parent)
+        self.dialog.title(f"Session Details - {session.date.strftime('%Y-%m-%d %H:%M')}")
+        self.dialog.geometry("500x400")
+        self.dialog.resizable(False, False)
+        self.dialog.transient(parent)
+        
+        # Center the dialog
+        self.dialog.geometry("+%d+%d" % (parent.winfo_rootx() + 50, parent.winfo_rooty() + 50))
+        
+        self.create_widgets(session)
+        
+        # Make sure the dialog is visible before grabbing focus
+        self.dialog.update_idletasks()
+        self.dialog.deiconify()
+        self.dialog.lift()
+        self.dialog.focus_force()
+        self.dialog.grab_set()
+        
+        self.dialog.wait_window()
+    
+    def create_widgets(self, session):
+        """Create dialog widgets."""
+        main_frame = ttk.Frame(self.dialog, padding="20")
+        main_frame.pack(fill='both', expand=True)
+        
+        # Title
+        title_label = ttk.Label(main_frame, text=f"Study Session", font=('Arial', 16, 'bold'))
+        title_label.pack(anchor='w', pady=(0, 10))
+        
+        # Session info
+        info_frame = ttk.Frame(main_frame)
+        info_frame.pack(fill='x', pady=(0, 10))
+        
+        ttk.Label(info_frame, text=f"Date: {session.date.strftime('%Y-%m-%d %H:%M')}", 
+                 font=('Arial', 11)).pack(anchor='w', pady=2)
+        
+        duration_minutes = int(session.duration.total_seconds() / 60)
+        ttk.Label(info_frame, text=f"Duration: {duration_minutes} minutes", 
+                 font=('Arial', 11)).pack(anchor='w', pady=2)
+        
+        # Problems worked on
+        if session.problems_worked:
+            ttk.Label(main_frame, text="Problems Worked On:", 
+                     font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            
+            problems_frame = ttk.Frame(main_frame)
+            problems_frame.pack(fill='both', expand=True, pady=(0, 10))
+            
+            problems_listbox = tk.Listbox(problems_frame, height=6)
+            problems_scrollbar = ttk.Scrollbar(problems_frame, orient='vertical', 
+                                             command=problems_listbox.yview)
+            problems_listbox.configure(yscrollcommand=problems_scrollbar.set)
+            
+            for problem in session.problems_worked:
+                problems_listbox.insert('end', f"• {problem}")
+            
+            problems_listbox.pack(side='left', fill='both', expand=True)
+            problems_scrollbar.pack(side='right', fill='y')
+        
+        # Session notes
+        if session.notes:
+            ttk.Label(main_frame, text="Session Notes:", 
+                     font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
+            
+            notes_frame = ttk.Frame(main_frame)
+            notes_frame.pack(fill='both', expand=True, pady=(0, 10))
+            
+            notes_text = tk.Text(notes_frame, height=6, wrap='word', state='disabled')
+            notes_scrollbar = ttk.Scrollbar(notes_frame, orient='vertical', 
+                                          command=notes_text.yview)
+            notes_text.configure(yscrollcommand=notes_scrollbar.set)
+            
+            notes_text.config(state='normal')
+            notes_text.insert('1.0', session.notes)
+            notes_text.config(state='disabled')
+            
+            notes_text.pack(side='left', fill='both', expand=True)
+            notes_scrollbar.pack(side='right', fill='y')
+        
+        # Close button
+        close_btn = ttk.Button(main_frame, text="Close", command=self.dialog.destroy)
+        close_btn.pack(pady=20)
+        
 def main():
     """Main function to run the GUI application."""
     app = InterviewTrackerGUI()
