@@ -15,8 +15,39 @@ except ImportError:
 class DataManager:
     """Handles saving and loading of progress data."""
     
-    def __init__(self, data_file: str = "interview_progress.json"):
-        self.data_file = Path(data_file)
+    def __init__(self, data_file: str = "interview_progress.json", loc_file: str = "codiac_location.json"):
+        loc_path = Path.home() / ".codiac"
+        self.data_location = loc_path / loc_file
+        
+        # Check if a custom data_file path is provided (not the default)
+        if data_file != "interview_progress.json":
+            # Custom file path provided - use it directly
+            self.data_file = Path(data_file)
+        elif not self.data_location.exists():
+            # No custom path and no config file - create default
+            self.data_file = loc_path / data_file
+            loc = {
+                "data_location": str(self.data_file)
+            }
+            try:
+                os.makedirs(os.path.dirname(self.data_location), exist_ok=True)
+                # Save new data location file
+                with open(self.data_location, 'w', encoding='utf-8') as f:
+                    json.dump(loc, f, indent=2, ensure_ascii=False)
+            except Exception as e:
+                print(f"Error creating data location file: {e}")
+                # Fallback to current directory if home directory fails
+                self.data_file = Path(data_file)
+        else:
+            # Read existing data location from json
+            try:
+                with open(self.data_location, 'r', encoding='utf-8') as f:
+                    location_data = json.load(f)
+                    self.data_file = Path(location_data["data_location"])
+            except Exception as e:
+                print(f"Error reading data location: {e}")
+                # Fallback to default location
+                self.data_file = loc_path / data_file
     
     def save(self, tracker: ProgressTracker) -> bool:
         """Save progress tracker to file."""

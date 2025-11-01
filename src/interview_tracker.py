@@ -144,6 +144,27 @@ class InterviewTrackerGUI:
     
     def create_widgets(self):
         """Create the main application widgets."""
+        top_frame = tk.Frame(self.root)
+        top_frame.pack(side="top",anchor="nw",padx=50,pady=20)
+        
+        # Database file change button
+        change_db_btn = tk.Button(
+            top_frame, 
+            text="📁 Change DB", 
+            command=self.change_database_file,
+            bg="#007acc",
+            fg="white",
+            padx=8,
+            pady=2,
+            relief="raised",
+            borderwidth=1
+        )
+        change_db_btn.pack(side='left', padx=(0, 10))
+        
+        # Current database file label
+        top_label = tk.Label(top_frame, text=self.data_manager.data_file)
+        top_label.pack(side='left')
+        
         # Main notebook for tabs
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
@@ -1306,6 +1327,144 @@ class InterviewTrackerGUI:
             except Exception as e:
                 messagebox.showerror("Error", f"Error recalculating time: {str(e)}")
 
+    def change_database_file(self):
+        """Allow user to change the database file location."""
+        from tkinter import filedialog
+        import os
+        
+        # Show file dialog for selecting new database location
+        new_file_path = filedialog.askopenfilename(
+            title="Select Database File (or choose location for new database)",
+            filetypes=[
+                ("JSON files", "*.json"),
+                ("All files", "*.*")
+            ],
+            initialdir=os.path.dirname(str(self.data_manager.data_file)) if self.data_manager.data_file else ".",
+            parent=self.root
+        )
+        
+        # If user cancels, allow them to create a new file
+        if not new_file_path:
+            new_file_path = filedialog.asksaveasfilename(
+                title="Create New Database File",
+                defaultextension=".json",
+                filetypes=[
+                    ("JSON files", "*.json"),
+                    ("All files", "*.*")
+                ],
+                initialdir=os.path.dirname(str(self.data_manager.data_file)) if self.data_manager.data_file else ".",
+                parent=self.root
+            )
+        
+        if new_file_path:
+            try:
+                # Save current data to current location first
+                if not self.data_manager.save(self.tracker):
+                    messagebox.showwarning("Warning", "Failed to save current data, but proceeding with database change.")
+                
+                old_data_manager = self.data_manager
+                old_file_path = str(self.data_manager.data_file)
+                
+                # Create new data manager for the selected file - pass the full path
+                self.data_manager = DataManager(data_file=new_file_path)
+                
+                if os.path.exists(new_file_path):
+                    # File exists - try to load existing data
+                    try:
+                        existing_tracker = self.data_manager.load()
+                        if existing_tracker:
+                            # Successfully loaded existing database
+                            self.tracker = existing_tracker
+                            
+                            # Force complete refresh of the interface
+                            self.refresh_all_views()
+                            self.last_data_hash = self.get_data_hash()
+                            
+                            messagebox.showinfo("Database Loaded", 
+                                               f"Successfully loaded existing database from:\n{new_file_path}")
+                        else:
+                            # File exists but couldn't load (empty or invalid)
+                            result = messagebox.askyesno(
+                                "Invalid Database File",
+                                f"The selected file exists but appears to be empty or invalid.\n\n"
+                                f"Would you like to create a new database at this location?\n"
+                                f"(This will overwrite the existing file)"
+                            )
+                            if result:
+                                # Create new empty database
+                                self.tracker = ProgressTracker()
+                                if not self.data_manager.save(self.tracker):
+                                    raise Exception("Failed to create new database file")
+                                self.refresh_all_views()
+                                self.last_data_hash = self.get_data_hash()
+                                messagebox.showinfo("New Database Created", 
+                                                   f"Created new database at:\n{new_file_path}")
+                            else:
+                                # User chose not to overwrite, revert
+                                self.data_manager = old_data_manager
+                                self.status_bar.config(text="Database change cancelled")
+                                return
+                    except Exception as load_error:
+                        # Error loading existing file
+                        result = messagebox.askyesno(
+                            "Error Loading Database",
+                            f"Error loading database file:\n{str(load_error)}\n\n"
+                            f"Would you like to create a new database at this location?"
+                        )
+                        if result:
+                            self.tracker = ProgressTracker()
+                            if not self.data_manager.save(self.tracker):
+                                raise Exception("Failed to create new database file")
+                            self.refresh_all_views()
+                            self.last_data_hash = self.get_data_hash()
+                            messagebox.showinfo("New Database Created", 
+                                               f"Created new database at:\n{new_file_path}")
+                        else:
+                            self.data_manager = old_data_manager
+                            self.status_bar.config(text="Database change cancelled")
+                            return
+                else:
+                    # File doesn't exist - create new database
+                    self.tracker = ProgressTracker()
+                    if not self.data_manager.save(self.tracker):
+                        raise Exception("Failed to create new database file")
+                    self.refresh_all_views()
+                    self.last_data_hash = self.get_data_hash()
+                    messagebox.showinfo("New Database Created", 
+                                       f"Created new database at:\n{new_file_path}")
+                
+                # Update the data location config
+                from pathlib import Path
+                loc_path = Path.home() / ".codiac"
+                data_location = loc_path / "codiac_location.json"
+                
+                loc = {"data_location": str(self.data_manager.data_file)}
+                
+                import json
+                with open(data_location, 'w', encoding='utf-8') as f:
+                    json.dump(loc, f, indent=2, ensure_ascii=False)
+                
+                # Update the UI - find and update the file path label
+                self.update_database_file_label()
+                self.status_bar.config(text=f"Database changed to: {new_file_path}")
+                
+            except Exception as e:
+                # Restore old data manager on error
+                self.data_manager = old_data_manager
+                messagebox.showerror("Error", f"Failed to change database location:\n{str(e)}")
+                self.status_bar.config(text="Database change failed")
+
+    def update_database_file_label(self):
+        """Update the database file path label in the GUI."""
+        # Find the top frame and update the label
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Frame):
+                for child in widget.winfo_children():
+                    if isinstance(child, tk.Label):
+                        # This should be our file path label
+                        child.config(text=str(self.data_manager.data_file))
+                        break
+                break
 
 class ProblemDialog:
     """Dialog for adding/editing problems."""
@@ -1365,17 +1524,16 @@ class ProblemDialog:
                                    values=['Not Started', 'In Progress', 'Completed', 'Needs Review'],
                                    state='readonly')
         status_combo.grid(row=3, column=1, sticky='w', pady=(0, 10))
-        status_row = 4
         
         # URL
-        ttk.Label(main_frame, text="From (optional):").grid(row=status_row, column=0, sticky='w', pady=(0, 5))
+        ttk.Label(main_frame, text="From (optional):").grid(row=4, column=0, sticky='w', pady=(0, 5))
         url_entry = ttk.Entry(main_frame, textvariable=self.url_var, width=50)
-        url_entry.grid(row=status_row, column=1, columnspan=2, sticky='ew', pady=(0, 10))
+        url_entry.grid(row=4, column=1, columnspan=2, sticky='ew', pady=(0, 10))
         
         # Description
-        ttk.Label(main_frame, text="Description:").grid(row=status_row+1, column=0, sticky='nw', pady=(0, 5))
+        ttk.Label(main_frame, text="Description:").grid(row=5, column=0, sticky='nw', pady=(0, 5))
         desc_frame = ttk.Frame(main_frame)
-        desc_frame.grid(row=status_row+1, column=1, columnspan=2, sticky='ew', pady=(0, 20))
+        desc_frame.grid(row=5, column=1, columnspan=2, sticky='ew', pady=(0, 20))
         
         self.description_text = tk.Text(desc_frame, height=6, width=50, wrap='word')
         desc_scrollbar = ttk.Scrollbar(desc_frame, orient='vertical', command=self.description_text.yview)
@@ -1389,7 +1547,7 @@ class ProblemDialog:
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
-        button_frame.grid(row=status_row+2, column=0, columnspan=3, pady=20)
+        button_frame.grid(row=6, column=0, columnspan=3, pady=20)
         
         ttk.Button(button_frame, text="Save", command=self.save).pack(side='left', padx=(0, 10))
         ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left')
@@ -1410,8 +1568,6 @@ class ProblemDialog:
             return
         
         description = self.description_text.get('1.0', 'end-1c').strip()
-        
-        # Always include status
         status = self.status_var.get()
         
         self.result = (title, self.difficulty_var.get(), topic, description, self.url_var.get().strip(), status)
@@ -1758,8 +1914,7 @@ class SessionDetailsDialog:
         # Close button
         close_btn = ttk.Button(main_frame, text="Close", command=self.dialog.destroy)
         close_btn.pack(pady=20)
-
-
+        
 def main():
     """Main function to run the GUI application."""
     app = InterviewTrackerGUI()
