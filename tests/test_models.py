@@ -92,6 +92,25 @@ class TestProblem:
         assert restored_problem.difficulty == sample_problem.difficulty
         assert restored_problem.status == sample_problem.status
         assert restored_problem.attempts == sample_problem.attempts
+    
+    def test_problem_with_rotation_data(self):
+        """Test problem serialization with rotation completion data."""
+        problem = Problem("Test Problem", Difficulty.EASY, "Test description")
+        problem.mark_completed()
+        problem.mark_rotation_completed()
+        
+        # Serialize
+        problem_dict = problem.to_dict()
+        
+        # Verify rotation data is included
+        assert problem_dict['rotation_completed_at'] is not None
+        
+        # Deserialize
+        restored_problem = Problem.from_dict(problem_dict)
+        
+        # Verify rotation data is preserved
+        assert restored_problem.rotation_completed_at is not None
+        assert restored_problem.rotation_completed_at == problem.rotation_completed_at
 
 
 class TestTopic:

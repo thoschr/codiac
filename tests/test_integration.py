@@ -206,3 +206,69 @@ class TestFullWorkflow:
         # Test recalculation with large dataset
         updated_counts = tracker.recalculate_attempt_counters()
         assert len(updated_counts) > 0
+    
+    def test_database_switching_workflow(self):
+        """Test switching between different database files."""
+        import tempfile
+        
+        # Create two temporary database files
+        db1_file = tempfile.NamedTemporaryFile(mode='w', suffix='_db1.json', delete=False)
+        db2_file = tempfile.NamedTemporaryFile(mode='w', suffix='_db2.json', delete=False)
+        db1_file.close()
+        db2_file.close()
+        
+        try:
+            # Create first database with some data
+            dm1 = DataManager(db1_file.name)
+            tracker1 = ProgressTracker()
+            
+            topic1 = Topic("Database 1 Topic", "First database topic")
+            tracker1.add_topic(topic1)
+            
+            problem1 = Problem("DB1 Problem", Difficulty.EASY, "Problem in first DB", topic="Database 1 Topic")
+            tracker1.add_problem(problem1)
+            
+            # Save first database
+            assert dm1.save(tracker1) is True
+            
+            # Create second database with different data
+            dm2 = DataManager(db2_file.name)
+            tracker2 = ProgressTracker()
+            
+            topic2 = Topic("Database 2 Topic", "Second database topic")
+            tracker2.add_topic(topic2)
+            
+            problem2 = Problem("DB2 Problem", Difficulty.HARD, "Problem in second DB", topic="Database 2 Topic")
+            tracker2.add_problem(problem2)
+            
+            # Save second database
+            assert dm2.save(tracker2) is True
+            
+            # Verify data separation
+            loaded_tracker1 = dm1.load()
+            loaded_tracker2 = dm2.load()
+            
+            assert len(loaded_tracker1.problems) == 1
+            assert len(loaded_tracker2.problems) == 1
+            assert "DB1 Problem" in loaded_tracker1.problems
+            assert "DB2 Problem" in loaded_tracker2.problems
+            assert "DB1 Problem" not in loaded_tracker2.problems
+            assert "DB2 Problem" not in loaded_tracker1.problems
+            
+            # Test switching between databases
+            dm_switch = DataManager(db1_file.name)
+            loaded_from_switch = dm_switch.load()
+            assert "DB1 Problem" in loaded_from_switch.problems
+            
+            # Switch to second database
+            dm_switch = DataManager(db2_file.name)
+            loaded_from_switch = dm_switch.load()
+            assert "DB2 Problem" in loaded_from_switch.problems
+            
+        finally:
+            # Cleanup
+            for file_path in [db1_file.name, db2_file.name]:
+                try:
+                    os.unlink(file_path)
+                except FileNotFoundError:
+                    pass
