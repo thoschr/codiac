@@ -167,7 +167,7 @@ class InterviewTrackerGUI:
         
         # Main notebook for tabs
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        self.notebook.pack(fill='both', expand=True, padx = 10, pady = 10)
         
         # Bind tab change event
         self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_changed)
@@ -205,24 +205,6 @@ class InterviewTrackerGUI:
         title_label = ttk.Label(scrollable_frame, text="Interview Preparation Dashboard", 
                                style='Title.TLabel')
         title_label.pack(pady=(0, 10))
-        
-        # Refresh button for dashboard
-        refresh_frame = ttk.Frame(scrollable_frame)
-        refresh_frame.pack(fill='x', padx=20, pady=(0, 10))
-        
-        refresh_btn = ttk.Button(refresh_frame, text="🔄 Refresh Dashboard", 
-                               command=self.refresh_dashboard_immediate)
-        refresh_btn.pack(side='right')
-        
-        # Auto-refresh status
-        auto_refresh_label = ttk.Label(refresh_frame, text="🔄 Auto-refresh: ON", 
-                                     font=('Arial', 9), foreground='green')
-        auto_refresh_label.pack(side='left')
-        
-        # Last update time
-        self.last_update_label = ttk.Label(refresh_frame, text="", 
-                                         font=('Arial', 9), foreground='blue')
-        self.last_update_label.pack(side='left', padx=(10, 0))
         
         # Stats cards container
         stats_container = ttk.Frame(scrollable_frame)
@@ -589,12 +571,6 @@ class InterviewTrackerGUI:
         # Ensure topic-problem connections are correct
         self.tracker.rebuild_topic_connections()
         
-        # Update last refresh time
-        from datetime import datetime
-        current_time = datetime.now().strftime("%H:%M:%S")
-        if hasattr(self, 'last_update_label'):
-            self.last_update_label.config(text=f"Updated: {current_time}")
-        
         # Clear existing widgets
         for widget in self.overall_stats_frame.winfo_children():
             widget.destroy()
@@ -627,18 +603,6 @@ class InterviewTrackerGUI:
         topic_stats = self.tracker.get_topic_stats()
         
         if topic_stats:
-            # Debug info
-            ttk.Label(self.topics_stats_frame, text="Topic Progress (Live):", 
-                     font=('Arial', 10, 'bold')).pack(anchor='w', pady=(0, 5))
-            
-            # Debug: show total problems in tracker vs topics
-            total_problems_in_tracker = len(self.tracker.problems)
-            total_problems_in_topics = sum(len(topic.problems) for topic in self.tracker.topics.values())
-            
-            ttk.Label(self.topics_stats_frame, 
-                     text=f"Debug: {total_problems_in_tracker} total problems, {total_problems_in_topics} in topics", 
-                     font=('Arial', 8), foreground='gray').pack(anchor='w', pady=(0, 5))
-            
             for i, (topic, stats) in enumerate(topic_stats.items()):
                 topic_frame = ttk.Frame(self.topics_stats_frame)
                 topic_frame.pack(fill='x', pady=2)
