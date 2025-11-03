@@ -6,7 +6,7 @@
 
 # Codiac
 
-A Python GUI application to track your progress in coding interview preparation.
+A Python GUI application to track your progress in coding-interview preparation.
 
 ## Features
 
