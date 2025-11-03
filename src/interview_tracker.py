@@ -10,14 +10,8 @@ from datetime import datetime, timedelta
 import json
 from typing import Optional, List
 
-try:
-    # Try relative imports first (when used as a module)
-    from .models import ProgressTracker, Topic, Problem, Difficulty, Status, StudySession
-    from .data_manager import DataManager
-except ImportError:
-    # Fall back to absolute imports (when run as a script)
-    from models import ProgressTracker, Topic, Problem, Difficulty, Status, StudySession
-    from data_manager import DataManager
+from models import ProgressTracker, Topic, Problem, Difficulty, Status, StudySession
+from data_manager import DataManager
 
 
 class InterviewTrackerGUI:
