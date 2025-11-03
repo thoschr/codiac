@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <img alt="Codiac Logo" src=".github/logo.png" width="80%">
+    <img alt="Codiac Logo" src=".github/logo.svg" width="80%">
   </picture>
 </p>
 # Interview Preparation Tracker
