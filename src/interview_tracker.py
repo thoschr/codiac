@@ -524,6 +524,11 @@ class InterviewTrackerGUI:
                                                state='disabled')
         self.mark_rotation_done_btn.pack(side='left')
         
+        self.add_rotation_as_session_btn = ttk.Button(controls_frame, text="Add as Session", 
+                                               command=self.add_rotation_as_session,
+                                               state='disabled')
+        self.add_rotation_as_session_btn.pack(side='left')
+        
         # Problem display area
         self.rotation_problem_frame = ttk.LabelFrame(main_container, text="Current Problem", padding="15")
         self.rotation_problem_frame.pack(fill='both', expand=True)
@@ -854,7 +859,10 @@ class InterviewTrackerGUI:
         # Refresh stats
         self.refresh_rotation_view()
         self.status_bar.config(text="Problem marked as reviewed in rotation")
-    
+
+    def add_rotation_as_session(self):
+
+
     def display_rotation_problem(self, problem: Problem):
         """Display the rotation problem details."""
         # Clear existing content
