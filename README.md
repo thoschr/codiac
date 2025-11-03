@@ -52,4 +52,7 @@ The application provides an intuitive interface with multiple tabs:
 <a href=".github/codiac-problems.png" target="_blank">
   <img src=".github/codiac-problems.png" alt="Codiac Problems" width="200"/>
 </a>
+<a href=".github/codiac-rotations.png" target="_blank">
+  <img src=".github/codiac-rotations.png" alt="Codiac Rotations" width="200"/>
+</a>
 
