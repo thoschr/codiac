@@ -33,6 +33,9 @@ class InterviewTrackerGUI:
         self.data_manager = DataManager()
         self.tracker = self.load_or_create_tracker()
         
+        # Context menu management
+        self.current_context_menu = None
+        
         # Auto-refresh timer
         self.auto_refresh_enabled = True
         self.last_data_hash = None
@@ -42,6 +45,9 @@ class InterviewTrackerGUI:
         
         # Create main interface
         self.create_widgets()
+        
+        # Bind global click handler for context menu hiding
+        self.root.bind("<Button-1>", self.hide_any_context_menu)
         
         # Load initial data
         self.refresh_all_views()
@@ -399,6 +405,43 @@ class InterviewTrackerGUI:
         
         list_frame.grid_rowconfigure(0, weight=1)
         list_frame.grid_columnconfigure(0, weight=1)
+        
+        # Context menu for topics
+        self.topics_context_menu = tk.Menu(self.root, tearoff=0)
+        self.topics_context_menu.add_command(label="Edit Topic", command=self.edit_topic_dialog)
+        self.topics_context_menu.add_separator()
+        self.topics_context_menu.add_command(label="Delete Topic", command=self.delete_selected_topic)
+        
+        self.topics_tree.bind("<Button-3>", self.show_topics_context_menu)
+        self.topics_tree.bind("<Double-1>", self.view_topic_details)
+        
+    def hide_context_menu(self, context_menu, event=None):
+        """Hide the specified context menu."""
+        if context_menu:
+            context_menu.unpost()
+        self.current_context_menu = None
+    
+    def hide_any_context_menu(self, event=None):
+        """Hide any currently open context menu."""
+        if self.current_context_menu:
+            self.current_context_menu.unpost()
+            self.current_context_menu = None
+    
+    def show_context_menu(self, tree_widget, context_menu, event):
+        """Generic function to show context menu for tree widgets."""
+        item = tree_widget.identify_row(event.y)
+        if item:
+            # Hide any currently open menu first
+            self.hide_any_context_menu()
+            
+            tree_widget.selection_set(item)
+            context_menu.post(event.x_root, event.y_root)
+            
+            # Track the currently open menu
+            self.current_context_menu = context_menu
+            
+        return "break"  # Prevent event propagation
+  
     
     def create_sessions_tab(self):
         """Create the study sessions tab."""
@@ -712,13 +755,14 @@ class InterviewTrackerGUI:
                                     text=session.date.strftime('%Y-%m-%d %H:%M'),
                                     values=(duration, problems, session.notes),
                                     tags=(str(i),))  # Store session index
-    
+
     def show_sessions_context_menu(self, event):
         """Show context menu for sessions."""
-        item = self.sessions_tree.identify_row(event.y)
-        if item:
-            self.sessions_tree.selection_set(item)
-            self.sessions_context_menu.post(event.x_root, event.y_root)
+        return self.show_context_menu(self.sessions_tree, self.sessions_context_menu, event)
+    
+    def show_topics_context_menu(self, event):
+        """Show context menu for topics."""
+        return self.show_context_menu(self.topics_tree, self.topics_context_menu, event)
     
     def view_session_details(self, event=None):
         """Show detailed view of selected session."""
@@ -1044,6 +1088,135 @@ class InterviewTrackerGUI:
             self.refresh_all_views()
             self.status_bar.config(text=f"Added topic: {name} - Dashboard updated")
     
+    def edit_topic_dialog(self):
+        """Show dialog to edit the selected topic."""
+        selection = self.topics_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a topic to edit.")
+            return
+        
+        item = self.topics_tree.item(selection[0])
+        topic_name = item['text']
+        
+        if topic_name not in self.tracker.topics:
+            messagebox.showerror("Error", "Selected topic not found!")
+            return
+        
+        topic = self.tracker.topics[topic_name]
+        
+        # Create dialog with existing topic data
+        dialog = TopicDialog(self.root, topic=topic)
+        if dialog.result:
+            new_name, new_description = dialog.result
+            
+            # Check if name changed and if new name already exists
+            if new_name != topic_name and new_name in self.tracker.topics:
+                messagebox.showerror("Error", f"Topic '{new_name}' already exists!")
+                return
+            
+            # If name changed, we need to update all problems that reference this topic
+            if new_name != topic_name:
+                # Update all problems that reference the old topic name
+                for problem in self.tracker.problems.values():
+                    if problem.topic == topic_name:
+                        problem.topic = new_name
+                
+                # Remove old topic and add new one
+                del self.tracker.topics[topic_name]
+                topic.name = new_name
+                self.tracker.topics[new_name] = topic
+            
+            # Update description
+            topic.description = new_description
+            
+            self.save_data()
+            self.refresh_all_views()
+            self.status_bar.config(text=f"Updated topic: {new_name}")
+    
+    def delete_selected_topic(self):
+        """Delete the selected topic."""
+        selection = self.topics_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a topic to delete.")
+            return
+        
+        item = self.topics_tree.item(selection[0])
+        topic_name = item['text']
+        
+        if topic_name not in self.tracker.topics:
+            messagebox.showerror("Error", "Selected topic not found!")
+            return
+        
+        topic = self.tracker.topics[topic_name]
+        
+        # Check if topic has problems
+        problems_in_topic = [p for p in self.tracker.problems.values() if p.topic == topic_name]
+        
+        if problems_in_topic:
+            result = messagebox.askyesnocancel(
+                "Delete Topic", 
+                f"Topic '{topic_name}' contains {len(problems_in_topic)} problem(s).\n\n"
+                "Choose an option:\n"
+                "• Yes: Delete topic and all its problems\n"
+                "• No: Delete only the topic (problems will become uncategorized)\n"
+                "• Cancel: Don't delete anything"
+            )
+            
+            if result is None:  # Cancel
+                return
+            elif result:  # Yes - delete problems too
+                # Delete all problems in this topic
+                problem_titles = [p.title for p in problems_in_topic]
+                for title in problem_titles:
+                    del self.tracker.problems[title]
+                messagebox.showinfo("Deleted", f"Deleted topic '{topic_name}' and {len(problems_in_topic)} problem(s).")
+            else:  # No - keep problems but remove topic reference
+                # Set problems to uncategorized
+                for problem in problems_in_topic:
+                    problem.topic = "Uncategorized"
+                messagebox.showinfo("Deleted", f"Deleted topic '{topic_name}'. {len(problems_in_topic)} problem(s) moved to 'Uncategorized'.")
+        else:
+            # No problems, safe to delete
+            result = messagebox.askyesno("Delete Topic", f"Are you sure you want to delete topic '{topic_name}'?")
+            if not result:
+                return
+        
+        # Delete the topic
+        del self.tracker.topics[topic_name]
+        
+        self.save_data()
+        self.refresh_all_views()
+        self.status_bar.config(text=f"Deleted topic: {topic_name}")
+    
+    def view_topic_details(self, event=None):
+        """Show detailed view of selected topic."""
+        selection = self.topics_tree.selection()
+        if not selection:
+            return
+        
+        item = self.topics_tree.item(selection[0])
+        topic_name = item['text']
+        topic = self.tracker.topics.get(topic_name)
+        
+        if topic:
+            # Create a simple info dialog showing topic details
+            problems_in_topic = [p for p in self.tracker.problems.values() if p.topic == topic_name]
+            completed_problems = [p for p in problems_in_topic if p.status == Status.COMPLETED]
+            
+            info_text = f"Topic: {topic.name}\n\n"
+            info_text += f"Description: {topic.description or 'No description'}\n\n"
+            info_text += f"Total Problems: {len(problems_in_topic)}\n"
+            info_text += f"Completed: {len(completed_problems)}\n"
+            info_text += f"Progress: {topic.get_completion_rate():.1f}%\n\n"
+            
+            if problems_in_topic:
+                info_text += "Problems in this topic:\n"
+                for problem in problems_in_topic:
+                    status_symbol = "✅" if problem.status == Status.COMPLETED else "⏳"
+                    info_text += f"  {status_symbol} {problem.title} ({problem.difficulty.value})\n"
+            
+            messagebox.showinfo(f"Topic Details - {topic.name}", info_text)
+
     def add_session_dialog(self):
         """Show dialog to add a study session."""
         dialog = SessionDialog(self.root, self.tracker.problems.keys())
@@ -1058,10 +1231,7 @@ class InterviewTrackerGUI:
     
     def show_problems_context_menu(self, event):
         """Show context menu for problems."""
-        item = self.problems_tree.identify_row(event.y)
-        if item:
-            self.problems_tree.selection_set(item)
-            self.problems_context_menu.post(event.x_root, event.y_root)
+        return self.show_context_menu(self.problems_tree, self.problems_context_menu, event)
     
     def view_problem_details(self, event=None):
         """Show detailed view of selected problem."""
@@ -1442,13 +1612,15 @@ class ProblemDialog:
 
 
 class TopicDialog:
-    """Dialog for adding topics."""
+    """Dialog for adding or editing topics."""
     
-    def __init__(self, parent):
+    def __init__(self, parent, topic=None):
         self.result = None
+        self.topic = topic  # For editing existing topics
         
         self.dialog = tk.Toplevel(parent)
-        self.dialog.title("Add Topic")
+        title = "Edit Topic" if topic else "Add Topic"
+        self.dialog.title(title)
         self.dialog.geometry("400x200")
         self.dialog.resizable(False, False)
         self.dialog.transient(parent)
@@ -1469,18 +1641,25 @@ class TopicDialog:
         ttk.Label(main_frame, text="Topic Name:").grid(row=0, column=0, sticky='w', pady=(0, 5))
         self.name_entry = ttk.Entry(main_frame, width=40)
         self.name_entry.grid(row=0, column=1, sticky='ew', pady=(0, 10))
-        self.name_entry.focus()
         
         # Description
         ttk.Label(main_frame, text="Description:").grid(row=1, column=0, sticky='w', pady=(0, 5))
         self.description_entry = ttk.Entry(main_frame, width=40)
         self.description_entry.grid(row=1, column=1, sticky='ew', pady=(0, 20))
         
+        # If editing, populate with existing values
+        if self.topic:
+            self.name_entry.insert(0, self.topic.name)
+            self.description_entry.insert(0, self.topic.description or "")
+        
+        self.name_entry.focus()
+        
         # Buttons
         button_frame = ttk.Frame(main_frame)
         button_frame.grid(row=2, column=0, columnspan=2, pady=20)
         
-        ttk.Button(button_frame, text="Add", command=self.save).pack(side='left', padx=(0, 10))
+        button_text = "Update" if self.topic else "Add"
+        ttk.Button(button_frame, text=button_text, command=self.save).pack(side='left', padx=(0, 10))
         ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left')
         
         main_frame.columnconfigure(1, weight=1)
