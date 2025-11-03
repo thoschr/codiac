@@ -1,3 +1,8 @@
+<p align="center">
+  <picture>
+    <img alt="Codiac Logo" src=".github/logo.png" width="80%">
+  </picture>
+</p>
 # Interview Preparation Tracker
 
 A Python GUI application to track your progress in interview preparation, including coding problems, topics studied, and overall progress.
