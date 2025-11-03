@@ -46,9 +46,7 @@ The application provides an intuitive interface with multiple tabs:
 - Last location is remembered and stored in: `~/.codiac/codiac_location.json`
 
 ## Impressions
-<p align="center">
-  <picture>
-    <img alt="Codiac Dashboard" src=".github/codiac-dashboard.png" width="20%">
-  </picture>
-</p>
+<a href=".github/codiac-dashboard.png" target="_blank">
+  <img src=".github/codiac-dashboard.png" alt="Codiac Logo" width="200"/>
+</a>
 
