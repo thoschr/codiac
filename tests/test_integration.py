@@ -203,10 +203,6 @@ class TestFullWorkflow:
         stats = tracker.get_overall_stats()
         assert stats['total_problems'] == 100
         
-        # Test recalculation with large dataset
-        updated_counts = tracker.recalculate_attempt_counters()
-        assert len(updated_counts) > 0
-    
     def test_database_switching_workflow(self):
         """Test switching between different database files."""
         import tempfile

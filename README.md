@@ -39,7 +39,6 @@ The application provides an intuitive interface with multiple tabs:
 - **Delete button** in Sessions tab to remove selected sessions
 - **Filters** to find problems by topic, status, or difficulty
 - **Visual progress indicators** with color-coded status
-- **Recalculate buttons** to update attempt counters and time tracking from session data
 
 ### Database Management
 - **Switch databases**: Use the "📁 Change DB" button to load existing databases or create new ones

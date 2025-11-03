@@ -283,40 +283,6 @@ class TestProgressTracker:
         assert int(problem2.time_spent.total_seconds() / 60) == 47  # 30 + 17  
         assert int(problem3.time_spent.total_seconds() / 60) == 16  # 0 + 16
         
-    def test_recalculate_time_from_sessions(self, empty_tracker):
-        """Test that time recalculation from sessions works correctly."""
-        # Add problems
-        problem1 = Problem("Problem 1", Difficulty.EASY, "Test", "url", "Arrays")
-        problem2 = Problem("Problem 2", Difficulty.MEDIUM, "Test", "url", "Arrays")
-        
-        # Add some initial time manually
-        problem1.add_time(100)  # This should be reset
-        problem2.add_time(50)   # This should be reset
-        
-        empty_tracker.add_problem(problem1)
-        empty_tracker.add_problem(problem2)
-        
-        # Add sessions directly to simulate existing saved sessions
-        session1 = StudySession(60, "Session 1", ["Problem 1", "Problem 2"])
-        session2 = StudySession(30, "Session 2", ["Problem 1"])
-        
-        empty_tracker.sessions.append(session1)
-        empty_tracker.sessions.append(session2)
-        
-        # Recalculate time from sessions
-        updated_times = empty_tracker.recalculate_time_from_sessions()
-        
-        # Verify time was reset and recalculated
-        # Session 1: 60min / 2 problems = 30min each
-        # Session 2: 30min / 1 problem = 30min to Problem 1
-        # Total: Problem 1 = 60min, Problem 2 = 30min
-        assert int(problem1.time_spent.total_seconds() / 60) == 60
-        assert int(problem2.time_spent.total_seconds() / 60) == 30
-        
-        # Verify return value
-        assert updated_times["Problem 1"] == 60
-        assert updated_times["Problem 2"] == 30
-        
     def test_remove_session_updates_problems(self, empty_tracker):
         """Test that removing a session properly updates problem time and attempts."""
         # Add problems
@@ -371,39 +337,6 @@ class TestProgressTracker:
         """Test deleting a problem that doesn't exist."""
         result = empty_tracker.delete_problem("Nonexistent Problem")
         assert result is False
-    
-    def test_recalculate_attempt_counters(self, empty_tracker):
-        """Test recalculating attempt counters from sessions."""
-        from tests.conftest import TestHelpers
-        
-        # Create test problems
-        problems = TestHelpers.create_test_problems(2)
-        for problem in problems:
-            empty_tracker.add_problem(problem)
-        
-        # Create sessions referencing problems multiple times
-        sessions = [
-            StudySession(30, "Session 1", [problems[0].title]),
-            StudySession(45, "Session 2", [problems[0].title, problems[1].title]),
-            StudySession(60, "Session 3", [problems[1].title])
-        ]
-        
-        # Set manual attempts (to be overridden)
-        problems[0].attempts = 99
-        problems[1].attempts = 88
-        
-        # Add sessions manually without triggering auto-increment
-        for session in sessions:
-            empty_tracker.sessions.append(session)
-        
-        # Recalculate
-        updated_counts = empty_tracker.recalculate_attempt_counters()
-        
-        # Verify results
-        assert updated_counts[problems[0].title] == 2  # Referenced in 2 sessions
-        assert updated_counts[problems[1].title] == 2  # Referenced in 2 sessions
-        assert problems[0].attempts == 2
-        assert problems[1].attempts == 2
     
     def test_get_overall_stats(self, populated_tracker):
         """Test getting overall statistics."""
