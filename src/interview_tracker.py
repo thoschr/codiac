@@ -260,25 +260,10 @@ class InterviewTrackerGUI:
                                    command=self.add_problem_dialog)
         add_problem_btn.pack(side='left', padx=(0, 10))
         
-        # Refresh button
-        refresh_btn = ttk.Button(controls_frame, text="🔄 Refresh", 
-                               command=self.refresh_problems_view)
-        refresh_btn.pack(side='left', padx=(0, 10))
-        
         # Delete button
         delete_btn = ttk.Button(controls_frame, text="🗑️ Delete Selected", 
                               command=self.delete_selected_problem)
         delete_btn.pack(side='left', padx=(0, 10))
-        
-        # Recalculate attempts button
-        recalc_btn = ttk.Button(controls_frame, text="🔢 Recalculate Attempts", 
-                              command=self.recalculate_attempts)
-        recalc_btn.pack(side='left', padx=(0, 10))
-        
-        # Recalculate time button
-        recalc_time_btn = ttk.Button(controls_frame, text="⏱️ Recalculate Time", 
-                                   command=self.recalculate_time_from_sessions)
-        recalc_time_btn.pack(side='left', padx=(0, 10))
         
         # Filters frame
         filters_frame = ttk.LabelFrame(controls_frame, text="Filters")
@@ -384,10 +369,6 @@ class InterviewTrackerGUI:
                                  command=self.add_topic_dialog)
         add_topic_btn.pack(side='left', padx=(0, 10))
         
-        refresh_topics_btn = ttk.Button(controls_frame, text="🔄 Refresh", 
-                                      command=self.refresh_topics_view)
-        refresh_topics_btn.pack(side='left')
-        
         # Topics list
         list_frame = ttk.Frame(self.topics_frame)
         list_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
@@ -431,10 +412,6 @@ class InterviewTrackerGUI:
         add_session_btn = ttk.Button(controls_frame, text="➕ Add Session", 
                                    command=self.add_session_dialog)
         add_session_btn.pack(side='left', padx=(0, 10))
-        
-        refresh_sessions_btn = ttk.Button(controls_frame, text="🔄 Refresh", 
-                                        command=self.refresh_sessions_view)
-        refresh_sessions_btn.pack(side='left', padx=(0, 10))
         
         delete_session_btn = ttk.Button(controls_frame, text="🗑️ Delete Selected", 
                                       command=self.delete_selected_session)
@@ -1212,84 +1189,6 @@ class InterviewTrackerGUI:
                 
             except Exception as e:
                 messagebox.showerror("Error", f"Error deleting problem: {str(e)}")
-
-    def recalculate_attempts(self):
-        """Recalculate attempt counters based on existing sessions."""
-        result = messagebox.askyesno(
-            "Recalculate Attempts", 
-            "This will recalculate all attempt counters based on existing study sessions.\n\n"
-            "All current attempt counts will be reset and recalculated from session data.\n\n"
-            "Do you want to continue?"
-        )
-        
-        if result:
-            try:
-                updated_counts = self.tracker.recalculate_attempt_counters()
-                
-                if updated_counts:
-                    # Save the updated data
-                    self.save_data()
-                    self.refresh_all_views()
-                    
-                    # Show summary of updates
-                    summary_lines = []
-                    for problem_title, count in updated_counts.items():
-                        summary_lines.append(f"• {problem_title}: {count} attempts")
-                    
-                    summary = "\n".join(summary_lines[:10])  # Show max 10 problems
-                    if len(updated_counts) > 10:
-                        summary += f"\n... and {len(updated_counts) - 10} more"
-                    
-                    messagebox.showinfo(
-                        "Recalculation Complete", 
-                        f"Successfully recalculated attempt counters for {len(updated_counts)} problems:\n\n{summary}"
-                    )
-                    
-                    self.status_bar.config(text=f"Recalculated attempt counters for {len(updated_counts)} problems")
-                else:
-                    messagebox.showinfo("Recalculation Complete", "No problems found with session data to update.")
-                    
-            except Exception as e:
-                messagebox.showerror("Error", f"Error recalculating attempts: {str(e)}")
-
-    def recalculate_time_from_sessions(self):
-        """Recalculate problem time spent based on existing sessions."""
-        result = messagebox.askyesno(
-            "Recalculate Time from Sessions", 
-            "This will recalculate all problem time tracking based on existing study sessions.\n\n"
-            "All current time spent values will be reset and recalculated by distributing session durations among the problems worked on.\n\n"
-            "Do you want to continue?"
-        )
-        
-        if result:
-            try:
-                updated_times = self.tracker.recalculate_time_from_sessions()
-                
-                if updated_times:
-                    # Save the updated data
-                    self.save_data()
-                    self.refresh_all_views()
-                    
-                    # Show summary of updates
-                    summary_lines = []
-                    for problem_title, time_minutes in updated_times.items():
-                        summary_lines.append(f"• {problem_title}: {time_minutes} minutes")
-                    
-                    summary = "\n".join(summary_lines[:10])  # Show max 10 problems
-                    if len(updated_times) > 10:
-                        summary += f"\n... and {len(updated_times) - 10} more"
-                    
-                    messagebox.showinfo(
-                        "Time Recalculation Complete", 
-                        f"Successfully recalculated time spent for {len(updated_times)} problems:\n\n{summary}"
-                    )
-                    
-                    self.status_bar.config(text=f"Recalculated time tracking for {len(updated_times)} problems")
-                else:
-                    messagebox.showinfo("Time Recalculation Complete", "No problems found with session data to update.")
-                    
-            except Exception as e:
-                messagebox.showerror("Error", f"Error recalculating time: {str(e)}")
 
     def change_database_file(self):
         """Allow user to change the database file location."""
