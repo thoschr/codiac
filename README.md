@@ -44,3 +44,11 @@ The application provides an intuitive interface with multiple tabs:
 - Default location: `~/.codiac/interview_progress.json` 
 - Database location is configurable via the GUI
 - Last location is remembered and stored in: `~/.codiac/codiac_location.json`
+
+## Impressions
+<p align="center">
+  <picture>
+    <img alt="Codiac Dashboard" src=".github/codiac-dashboard.png" width="20%">
+  </picture>
+</p>
+
