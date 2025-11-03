@@ -19,11 +19,7 @@ A Python GUI application to track your progress in coding-interview preparation.
 ## Quick Start
 
 ```bash
-python src/interview_tracker.py
-```
-or
-```bash
-python src/launch_gui.py
+python src/codiac.py
 ```
 
 ## GUI Features
@@ -40,7 +36,7 @@ The application provides an intuitive interface with multiple tabs:
 
 1. Clone this repository
 2. Install dependencies: `pip install -r requirements.txt`
-3. Run: `python src/interview_tracker.py`
+3. Run: `python src/codiac.py`
 
 ## Data Storage
 
