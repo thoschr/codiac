@@ -47,6 +47,9 @@ The application provides an intuitive interface with multiple tabs:
 
 ## Impressions
 <a href=".github/codiac-dashboard.png" target="_blank">
-  <img src=".github/codiac-dashboard.png" alt="Codiac Logo" width="200"/>
+  <img src=".github/codiac-dashboard.png" alt="Codiac Dashboard" width="200"/>
+</a>
+<a href=".github/codiac-problems.png" target="_blank">
+  <img src=".github/codiac-problems.png" alt="Codiac Problems" width="200"/>
 </a>
 
