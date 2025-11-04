@@ -839,9 +839,11 @@ class InterviewTrackerGUI:
             self.current_rotation_problem = problem
             self.display_rotation_problem(problem)
             self.mark_rotation_done_btn.config(state='normal')
+            self.add_rotation_as_session_btn.config(state='normal')
         else:
             self.show_no_problems_message()
             self.mark_rotation_done_btn.config(state='disabled')
+            self.add_rotation_as_session_btn.config(state='disabled')
     
     def mark_rotation_completed(self):
         """Mark the current rotation problem as completed."""
@@ -861,6 +863,31 @@ class InterviewTrackerGUI:
         self.status_bar.config(text="Problem marked as reviewed in rotation")
 
     def add_rotation_as_session(self):
+        if not self.current_rotation_problem:
+            return
+        dialog = SessionDialog(self.root, [self.current_rotation_problem])
+        if dialog.result:
+            duration, notes, problems_worked = dialog.result
+            
+            session = StudySession(duration, notes, problems_worked)
+            self.tracker.add_session(session)
+            
+            # Automatically mark the problem as rotation completed
+            self.current_rotation_problem.mark_rotation_completed()
+            
+            self.save_data()
+            self.refresh_all_views()
+            
+            # Clear current problem and update display (similar to manual completion)
+            self.current_rotation_problem = None
+            self.mark_rotation_done_btn.config(state='disabled')
+            self.add_rotation_as_session_btn.config(state='disabled')
+            self.show_completion_message()
+            
+            # Refresh stats
+            self.refresh_rotation_view()
+            self.status_bar.config(text="Problem added as session and marked as reviewed in rotation")
+            self.status_bar.config(text=f"Added {duration}-minute study session - Dashboard updated")
 
 
     def display_rotation_problem(self, problem: Problem):
@@ -1221,7 +1248,7 @@ class InterviewTrackerGUI:
 
     def add_session_dialog(self):
         """Show dialog to add a study session."""
-        dialog = SessionDialog(self.root, self.tracker.problems.keys())
+        dialog = SessionDialog(self.root, list(self.tracker.problems.keys()))
         if dialog.result:
             duration, notes, problems_worked = dialog.result
             
@@ -1724,22 +1751,28 @@ class SessionDialog:
         
         self.notes_text.pack(side='left', fill='both', expand=True)
         notes_scrollbar.pack(side='right', fill='y')
-        
-        # Problems worked on
-        ttk.Label(main_frame, text="Problems Worked On:").grid(row=2, column=0, sticky='nw', pady=(0, 5))
-        problems_frame = ttk.Frame(main_frame)
-        problems_frame.grid(row=2, column=1, columnspan=2, sticky='ew', pady=(0, 20))
-        
-        # Listbox for problems selection
-        self.problems_listbox = tk.Listbox(problems_frame, height=6, selectmode='multiple')
-        problems_scrollbar = ttk.Scrollbar(problems_frame, orient='vertical', command=self.problems_listbox.yview)
-        self.problems_listbox.configure(yscrollcommand=problems_scrollbar.set)
-        
-        for problem in self.problems:
-            self.problems_listbox.insert('end', problem)
-        
-        self.problems_listbox.pack(side='left', fill='both', expand=True)
-        problems_scrollbar.pack(side='right', fill='y')
+
+        # Only show problems section if there are multiple problems
+        if len(self.problems) > 1:
+            # Problems worked on
+            ttk.Label(main_frame, text="Problems Worked On:").grid(row=2, column=0, sticky='nw', pady=(0, 5))
+            problems_frame = ttk.Frame(main_frame)
+            problems_frame.grid(row=2, column=1, columnspan=2, sticky='ew', pady=(0, 20))
+            
+            # Listbox for problems selection
+            self.problems_listbox = tk.Listbox(problems_frame, height=6, selectmode='multiple')
+            problems_scrollbar = ttk.Scrollbar(problems_frame, orient='vertical', command=self.problems_listbox.yview)
+            self.problems_listbox.configure(yscrollcommand=problems_scrollbar.set)
+            
+            for problem in self.problems:
+                self.problems_listbox.insert('end', problem.title)
+            
+            self.problems_listbox.pack(side='left', fill='both', expand=True)
+            problems_scrollbar.pack(side='right', fill='y')
+        else:
+            # For single problem, create a hidden listbox with the problem pre-selected
+            self.problems_listbox = None
+
         
         # Buttons
         button_frame = ttk.Frame(main_frame)
@@ -1761,8 +1794,12 @@ class SessionDialog:
         notes = self.notes_text.get('1.0', 'end-1c').strip()
         
         # Get selected problems
-        selected_indices = self.problems_listbox.curselection()
-        problems_worked = [self.problems_listbox.get(i) for i in selected_indices]
+        if self.problems_listbox is not None:
+            selected_indices = self.problems_listbox.curselection()
+            problems_worked = [self.problems_listbox.get(i) for i in selected_indices]
+        else:
+            # Single problem case - just use the one problem's title
+            problems_worked = [self.problems[0].title]
         
         self.result = (duration, notes, problems_worked)
         self.dialog.destroy()
