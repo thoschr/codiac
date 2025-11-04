@@ -15,6 +15,7 @@ A Python GUI application to track your progress in coding-interview preparation.
 - Time tracking for study sessions
 - Progress statistics and analytics
 - Multiple database support - Switch between different databases for different projects/goals
+- Minimal dependencies. In fact, apart from pytest for the test suite, codiac only uses packages that are included in every standard python installation.
 
 ## Quick Start
 
