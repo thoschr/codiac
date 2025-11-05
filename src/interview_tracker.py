@@ -917,9 +917,6 @@ class InterviewTrackerGUI:
         info_frame = ttk.Frame(scrollable_frame)
         info_frame.pack(fill='x', pady=(0, 15))
         
-        ttk.Label(info_frame, text="Topic:", font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 10))
-        ttk.Label(info_frame, text=problem.topic, font=('Arial', 11)).grid(row=0, column=1, sticky='w')
-        
         ttk.Label(info_frame, text="Difficulty:", font=('Arial', 11, 'bold')).grid(row=1, column=0, sticky='w', padx=(0, 10))
         ttk.Label(info_frame, text=problem.difficulty.value, font=('Arial', 11)).grid(row=1, column=1, sticky='w')
         
