@@ -34,6 +34,9 @@ class InterviewTrackerGUI:
         self.auto_refresh_enabled = True
         self.last_data_hash = None
         
+        # Column visibility state
+        self.topic_column_visible = False  # Hidden by default
+        
         # Configure styles
         self.setup_styles()
         
@@ -300,6 +303,15 @@ class InterviewTrackerGUI:
         list_frame = ttk.Frame(self.problems_frame)
         list_frame.pack(fill='both', expand=True, padx=10, pady=(0, 10))
         
+        # Header frame for column controls
+        header_frame = ttk.Frame(list_frame)
+        header_frame.grid(row=0, column=0, columnspan=2, sticky='ew', pady=(0, 5))
+        
+        # Topic visibility toggle button
+        self.topic_visibility_btn = ttk.Button(header_frame, text="👁️ Topic", 
+                                             command=self.toggle_topic_column)
+        self.topic_visibility_btn.pack(side='left')
+        
         # Treeview for problems
         columns = ('Topic', 'Difficulty', 'Status', 'Attempts', 'Time')
         self.problems_tree = ttk.Treeview(list_frame, columns=columns, show='tree headings')
@@ -320,17 +332,20 @@ class InterviewTrackerGUI:
         self.problems_tree.column('Attempts', width=80)
         self.problems_tree.column('Time', width=100)
         
+        # Hide topic column by default
+        self.apply_topic_column_visibility()
+        
         # Scrollbars
         v_scrollbar = ttk.Scrollbar(list_frame, orient='vertical', command=self.problems_tree.yview)
         h_scrollbar = ttk.Scrollbar(list_frame, orient='horizontal', command=self.problems_tree.xview)
         self.problems_tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
         
-        # Pack treeview and scrollbars
-        self.problems_tree.grid(row=0, column=0, sticky='nsew')
-        v_scrollbar.grid(row=0, column=1, sticky='ns')
-        h_scrollbar.grid(row=1, column=0, sticky='ew')
+        # Grid treeview and scrollbars (row 1 because header is in row 0)
+        self.problems_tree.grid(row=1, column=0, sticky='nsew')
+        v_scrollbar.grid(row=1, column=1, sticky='ns')
+        h_scrollbar.grid(row=2, column=0, sticky='ew')
         
-        list_frame.grid_rowconfigure(0, weight=1)
+        list_frame.grid_rowconfigure(1, weight=1)
         list_frame.grid_columnconfigure(0, weight=1)
         
         # Context menu for problems
@@ -355,6 +370,22 @@ class InterviewTrackerGUI:
         
         self.problems_tree.bind("<Button-3>", self.show_problems_context_menu)
         self.problems_tree.bind("<Double-1>", self.view_problem_details)
+    
+    def toggle_topic_column(self):
+        """Toggle the visibility of the Topic column in the problems tree."""
+        self.topic_column_visible = not self.topic_column_visible
+        self.apply_topic_column_visibility()
+    
+    def apply_topic_column_visibility(self):
+        """Apply the current topic column visibility setting."""
+        if self.topic_column_visible:
+            # Show topic column - show all columns including Topic
+            all_columns = ('Topic', 'Difficulty', 'Status', 'Attempts', 'Time')
+            self.problems_tree['displaycolumns'] = all_columns
+        else:
+            # Hide topic column - show all columns except Topic
+            visible_columns = ('Difficulty', 'Status', 'Attempts', 'Time')
+            self.problems_tree['displaycolumns'] = visible_columns
     
     def create_topics_tab(self):
         """Create the topics management tab."""
@@ -916,9 +947,6 @@ class InterviewTrackerGUI:
         # Info grid
         info_frame = ttk.Frame(scrollable_frame)
         info_frame.pack(fill='x', pady=(0, 15))
-        
-        ttk.Label(info_frame, text="Topic:", font=('Arial', 11, 'bold')).grid(row=0, column=0, sticky='w', padx=(0, 10))
-        ttk.Label(info_frame, text=problem.topic, font=('Arial', 11)).grid(row=0, column=1, sticky='w')
         
         ttk.Label(info_frame, text="Difficulty:", font=('Arial', 11, 'bold')).grid(row=1, column=0, sticky='w', padx=(0, 10))
         ttk.Label(info_frame, text=problem.difficulty.value, font=('Arial', 11)).grid(row=1, column=1, sticky='w')
