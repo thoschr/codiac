@@ -87,6 +87,9 @@ class Problem:
     def mark_rotation_completed(self):
         """Mark problem as completed in rotation review."""
         self.rotation_completed_at = datetime.now()
+        
+    def clear_rotation(self):
+        self.rotation_completed_at = None
     
     def add_note(self, note: str):
         """Add a note to this problem."""
@@ -172,7 +175,13 @@ class ProgressTracker:
         self.topics: Dict[str, Topic] = {}
         self.problems: Dict[str, Problem] = {}
         self.sessions: List[StudySession] = []
-    
+
+    def clear_rotations(self):
+        if not self.problems:
+            return
+        for p in self.problems:
+            p.clear_rotation()
+
     def add_topic(self, topic: Topic):
         """Add a topic to the tracker."""
         self.topics[topic.name] = topic
@@ -321,37 +330,20 @@ class ProgressTracker:
         
         # Get all completed problems
         completed_problems = [p for p in self.problems.values() if p.status == Status.COMPLETED]
+        unreviewed_problems = [p for p in completed_problems if not p.rotation_completed_at]
         
         if not completed_problems:
             return None
-        
+
+        if not unreviewed_problems:
+            self.clear_rotations()
+            unreviewed_problems = completed_problems
+
         # Separate problems into two groups:
         # 1. Problems that haven't been reviewed in rotation yet
         # 2. Problems that have been reviewed but all others have been reviewed too
         
-        # Find the latest rotation completion time among all problems
-        latest_rotation_times = [p.rotation_completed_at for p in completed_problems if p.rotation_completed_at]
-        
-        if not latest_rotation_times:
-            # No problems have been reviewed yet, pick any completed problem
-            return random.choice(completed_problems)
-        
-        # Get the latest rotation completion time
-        latest_rotation_time = max(latest_rotation_times)
-        
-        # Find problems that haven't been reviewed since the latest "round" started
-        unreviewed_in_current_round = [
-            p for p in completed_problems 
-            if not p.rotation_completed_at or p.rotation_completed_at < latest_rotation_time
-        ]
-        
-        if unreviewed_in_current_round:
-            # Still have problems to review in current round
-            return random.choice(unreviewed_in_current_round)
-        else:
-            # All problems have been reviewed in current round, start new round
-            # Pick any completed problem (start fresh round)
-            return random.choice(completed_problems)
+        return random.choice(unreviewed_problems)
     
     def get_rotation_stats(self) -> dict:
         """Get rotation statistics."""
