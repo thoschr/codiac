@@ -179,7 +179,7 @@ class ProgressTracker:
     def clear_rotations(self):
         if not self.problems:
             return
-        for p in self.problems:
+        for p in self.problems.values():
             p.clear_rotation()
 
     def add_topic(self, topic: Topic):
