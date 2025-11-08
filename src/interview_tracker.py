@@ -963,12 +963,6 @@ class InterviewTrackerGUI:
             ttk.Label(info_frame, text="Completed:", font=('Arial', 11, 'bold')).grid(row=4, column=0, sticky='w', padx=(0, 10))
             ttk.Label(info_frame, text=completed_date, font=('Arial', 11)).grid(row=4, column=1, sticky='w')
         
-        # From/URL
-        if problem.url:
-            ttk.Label(scrollable_frame, text="From:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(10, 5))
-            url_label = ttk.Label(scrollable_frame, text=problem.url, foreground='blue', cursor='hand2')
-            url_label.pack(anchor='w')
-        
         # Description
         if problem.description:
             ttk.Label(scrollable_frame, text="Description:", font=('Arial', 11, 'bold')).pack(anchor='w', pady=(15, 5))
