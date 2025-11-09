@@ -1787,7 +1787,7 @@ class SessionDialog:
             self.problems_listbox.configure(yscrollcommand=problems_scrollbar.set)
             
             for problem in self.problems:
-                self.problems_listbox.insert('end', problem.title)
+                self.problems_listbox.insert('end', problem ) 
             
             self.problems_listbox.pack(side='left', fill='both', expand=True)
             problems_scrollbar.pack(side='right', fill='y')
